@@ -9,6 +9,7 @@ class Itinerary extends Model
 {
     use HasFactory;
 
+    protected $table = 'itinerary';
     public $timestamps = false;
 
     protected $fillable = [

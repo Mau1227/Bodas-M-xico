@@ -31,6 +31,15 @@ class Event extends Model
     public function eventPhotos() {
         return $this->hasMany(EventPhoto::class);
     }
+
+    public function itineraryItems() {
+        return $this->hasMany(Itinerary::class);
+    }
+
+    public function template() {
+        return $this->belongsTo(Template::class);
+    }
+
     
     // ...Aquí pones las demás: itinerary(), registryLinks(), etc.
 }

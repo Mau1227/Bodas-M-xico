@@ -17,6 +17,7 @@ class Template extends Model
         'preview_image_url',
         'is_premium',
         'is_active',
+        'view_file',
     ];
 
     // Para manejar los booleanos
