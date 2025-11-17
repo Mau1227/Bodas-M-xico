@@ -9,16 +9,28 @@ class Guest extends Model
 {
     use HasFactory;
 
-    // 1. Array Fillable
     protected $fillable = [
-        'event_id', 'full_name', 'email', 'phone', 'max_companions',
-        'invitation_token', 'status', 'confirmed_companions',
-        'dietary_restrictions', 'message_to_couple', 'confirmed_at',
+        'event_id',
+        'full_name',
+        'email',
+        'phone',
+        'max_companions',
+        'invitation_token',
+        'status',
+        'confirmed_companions',
+        'dietary_restrictions',
+        'message_to_couple',
+        'confirmed_at',
         'invitation_sent_at',
     ];
 
-    // 2. Relaciones
-    public function event() {
+    protected $casts = [
+        'confirmed_at'      => 'datetime',
+        'invitation_sent_at'=> 'datetime',
+    ];
+
+    public function event()
+    {
         return $this->belongsTo(Event::class);
     }
 }

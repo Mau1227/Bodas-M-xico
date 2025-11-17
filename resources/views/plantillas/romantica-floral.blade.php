@@ -14,6 +14,10 @@
   $frases_novio = $event->groom_story ? explode("\n", trim($event->groom_story)) : ['Eres mi presente y mi futuro.'];
 @endphp
 
+@php
+    $isPreview = $isPreview ?? false;
+@endphp
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -319,10 +323,7 @@ footer p{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-style:ita
 
 <div id="modalInicial" class="modal active" role="dialog" aria-labelledby="modalTitle" aria-modal="true">
   <div class="modal-content">
-    <svg viewBox="0 0 140 140" aria-hidden="true">
-      <!-- (SVG del sobre) -->
-    </svg>
-    <h2 id="modalTitle">Has recibido una invitación</h2>
+    <h2 id="modalTitle">{{ $guest->full_name }} <br> Has recibido una invitación</h2>
     <p>Celebra con nosotros el día más importante de nuestras vidas</p>
     <button type="button" class="btn" id="btnEntrar"><span>Abrir invitación</span></button>
   </div>
@@ -333,7 +334,7 @@ footer p{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-style:ita
   <div class="hero-content">
     <h1>{{ $event->bride_name }} & {{ $event->groom_name }}</h1>
     <p>Nos casamos y queremos que seas parte de este momento inolvidable</p>
-    <a href="#detalles" class="btn"><span>Ver los detalles</span></a>
+    <a href="#rsvp" class="btn"><span>Confirmar asistencia</span></a>
   </div>
 </section>
 
@@ -355,9 +356,19 @@ footer p{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-style:ita
     <div class="grid-2">
       <div>
         <!-- Mensaje de Bienvenida Dinámico -->
-        <p class="invitation-text">{{ $event->welcome_message ?? 'Con la bendición de Dios y el amor que nos une, queremos compartir con ustedes el momento más especial de nuestras vidas.' }}</p>
-        
-        <p class="pases-info">Pases para 2 personas</p>
+        @php
+            $totalPases = 1 + (int) ($guest->max_companions ?? 0);
+        @endphp
+
+        @if ($isPreview)
+            <p class="pases-info">
+                Ejemplo: pase para {{ $totalPases }} persona{{ $totalPases > 1 ? 's' : '' }}
+            </p>
+        @else
+            <p class="pases-info">
+                Pase para {{ $totalPases }} persona{{ $totalPases > 1 ? 's' : '' }}
+            </p>
+        @endif
       </div>
       <div>
         <img src="https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=800" alt="Fotografía de {{ $event->bride_name }} y {{ $event->groom_name }}" class="invitation-img" loading="lazy" width="600" height="400">
@@ -502,8 +513,244 @@ footer p{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-style:ita
   </div>
 </section>
 
-<!-- (Sección RSVP - La conectaremos al módulo de Invitados) -->
-<!-- ... -->
+<section class="section rsvp-section fade-in" id="rsvp">
+  <div class="container">
+    <h2 class="section-title">Confirma tu asistencia</h2>
+
+    <p class="mb-8" style="font-size:1.3rem;">
+      Querid@ <strong>{{ $guest->full_name }}</strong>, nos encantará saber si podrás acompañarnos
+      en este día tan especial 💌
+    </p>
+
+    {{-- Mensajes de estado (solo tienen sentido en modo real) --}}
+    @if (!$isPreview)
+        @if (session('rsvp_status'))
+            <div class="success-message">
+                <h3>¡Gracias por tu respuesta! 💖</h3>
+                <p>{{ session('rsvp_status') }}</p>
+            </div>
+        @elseif ($alreadyConfirmed)
+            <div class="success-message">
+                <h3>Ya habías confirmado anteriormente</h3>
+                <p>Puedes actualizar tu respuesta si lo necesitas y volver a enviar el formulario.</p>
+            </div>
+        @endif
+    @endif
+
+    <div class="grid-2" style="margin-top:40px;align-items:flex-start;">
+
+      {{-- ===========================
+           COLUMNA IZQUIERDA
+         =========================== --}}
+      <div>
+        @if ($isPreview)
+          {{-- VISTA PREVIA: formulario “de mentiras” --}}
+          <div class="card" style="text-align:left;">
+            <p class="text-sm text-slate-600 mb-4">
+              Estás viendo una <strong>vista previa</strong>. Así se verá el formulario para tus invitados,
+              pero aquí los campos están deshabilitados.
+            </p>
+
+            {{-- Asistencia (demo) --}}
+            <div class="form-group">
+              <label class="block text-sm font-medium text-slate-800 mb-1">
+                ¿Podrás asistir?
+              </label>
+
+              <div class="space-y-2 text-sm">
+                <label class="inline-flex items-center gap-2 opacity-60">
+                  <input type="radio" disabled checked>
+                  <span>Sí, con gusto asistiré 🎉</span>
+                </label><br>
+
+                <label class="inline-flex items-center gap-2 opacity-60">
+                  <input type="radio" disabled>
+                  <span>No podré asistir 😢</span>
+                </label>
+              </div>
+            </div>
+
+            {{-- Acompañantes (demo) --}}
+            @if ($guest->max_companions > 0)
+              <div class="form-group">
+                <label class="block text-sm font-medium text-slate-800 mb-1">
+                  ¿Cuántas personas te acompañan?
+                </label>
+                <p class="text-xs text-slate-500 mb-2">
+                  Puedes traer hasta {{ $guest->max_companions }} acompañante(s).
+                </p>
+
+                <input type="number"
+                       disabled
+                       value="1"
+                       class="w-24 border-slate-300 rounded-md text-sm opacity-60">
+              </div>
+            @endif
+
+            {{-- Restricciones (demo) --}}
+            <div class="form-group">
+              <label class="block text-sm font-medium text-slate-800 mb-1">
+                ¿Tienes alguna restricción alimentaria?
+              </label>
+              <textarea rows="2"
+                        disabled
+                        class="w-full border-slate-300 rounded-md text-sm opacity-60"
+                        placeholder="Ejemplo: vegetariano, vegano, sin gluten, alergia a mariscos, etc."></textarea>
+            </div>
+
+            {{-- Mensaje (demo) --}}
+            <div class="form-group">
+              <label class="block text-sm font-medium text-slate-800 mb-1">
+                Mensaje para {{ $event->bride_name }} & {{ $event->groom_name }}
+              </label>
+              <textarea rows="3"
+                        disabled
+                        class="w-full border-slate-300 rounded-md text-sm opacity-60"
+                        placeholder="Déjales un mensaje bonito a los novios 💌"></textarea>
+            </div>
+
+            <div style="text-align:center;margin-top:20px;">
+              <button type="button" class="btn" disabled>
+                <span>Enviar respuesta (solo vista previa)</span>
+              </button>
+            </div>
+          </div>
+        @else
+          {{-- MODO REAL: formulario funcional --}}
+          <form method="POST"
+                action="{{ route('rsvp.submit', ['slug' => $event->custom_url_slug, 'token' => $guest->invitation_token]) }}"
+                class="card"
+                style="text-align:left;">
+            @csrf
+
+            {{-- Asistencia --}}
+            <div class="form-group">
+              <label class="block text-sm font-medium text-slate-800 mb-1">
+                ¿Podrás asistir?
+              </label>
+
+              <div class="space-y-2 text-sm">
+                <label class="inline-flex items-center gap-2">
+                  <input type="radio"
+                         name="status"
+                         value="confirmed"
+                         @checked(old('status', $guest->status) === 'confirmed')
+                         class="rounded border-slate-300">
+                  <span>Sí, con gusto asistiré 🎉</span>
+                </label><br>
+
+                <label class="inline-flex items-center gap-2">
+                  <input type="radio"
+                         name="status"
+                         value="declined"
+                         @checked(old('status', $guest->status) === 'declined')
+                         class="rounded border-slate-300">
+                  <span>No podré asistir 😢</span>
+                </label>
+              </div>
+
+              @error('status')
+                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+              @enderror
+            </div>
+
+            {{-- Acompañantes --}}
+            @if ($guest->max_companions > 0)
+              <div class="form-group">
+                <label class="block text-sm font-medium text-slate-800 mb-1">
+                  ¿Cuántas personas te acompañan?
+                </label>
+                <p class="text-xs text-slate-500 mb-2">
+                  Puedes traer hasta {{ $guest->max_companions }} acompañante(s).
+                </p>
+
+                <input type="number"
+                       name="confirmed_companions"
+                       min="0"
+                       max="{{ $guest->max_companions }}"
+                       value="{{ old('confirmed_companions', $guest->confirmed_companions) }}"
+                       class="w-24 border-slate-300 rounded-md text-sm">
+
+                @error('confirmed_companions')
+                  <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                @enderror
+              </div>
+            @endif
+
+            {{-- Restricciones alimentarias --}}
+            <div class="form-group">
+              <label class="block text-sm font-medium text-slate-800 mb-1">
+                ¿Tienes alguna restricción alimentaria?
+              </label>
+              <textarea name="dietary_restrictions"
+                        rows="2"
+                        class="w-full border-slate-300 rounded-md text-sm"
+                        placeholder="Ejemplo: vegetariano, vegano, sin gluten, alergia a mariscos, etc.">{{ old('dietary_restrictions', $guest->dietary_restrictions) }}</textarea>
+
+              @error('dietary_restrictions')
+                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+              @enderror
+            </div>
+
+            {{-- Mensaje para los novios --}}
+            <div class="form-group">
+              <label class="block text-sm font-medium text-slate-800 mb-1">
+                Mensaje para {{ $event->bride_name }} & {{ $event->groom_name }}
+              </label>
+              <textarea name="message_to_couple"
+                        rows="3"
+                        class="w-full border-slate-300 rounded-md text-sm"
+                        placeholder="Déjales un mensaje bonito a los novios 💌">{{ old('message_to_couple', $guest->message_to_couple) }}</textarea>
+
+              @error('message_to_couple')
+                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+              @enderror
+            </div>
+
+            <div style="text-align:center;margin-top:20px;">
+              <button type="submit" class="btn">
+                <span>Enviar respuesta</span>
+              </button>
+            </div>
+          </form>
+        @endif
+      </div>
+
+      {{-- ===========================
+           COLUMNA DERECHA (resumen)
+         =========================== --}}
+      <div class="card" style="text-align:left;">
+        <h3 style="margin-bottom:15px;">
+          {{ $isPreview ? 'Ejemplo de cómo verá su invitación' : 'Detalles de tu invitación' }}
+        </h3>
+        <p><strong>Invitad@:</strong> {{ $guest->full_name }}</p>
+        <p><strong>Evento:</strong> Boda de {{ $event->bride_name }} & {{ $event->groom_name }}</p>
+        <p><strong>Fecha:</strong> {{ $fecha_completa }} a las {{ $hora_evento_formato }} hrs</p>
+        <p><strong>Lugar:</strong> {{ $event->reception_venue_name }}</p>
+        <p><strong>Dirección:</strong> {{ $event->reception_venue_address }}</p>
+        <p style="margin-top:15px;">
+          <strong>Pases:</strong> {{ $totalPases }} persona{{ $totalPases > 1 ? 's' : '' }}
+        </p>
+
+        @if ($event->dress_code)
+          <p style="margin-top:10px;">
+            <strong>Código de vestimenta:</strong> {{ $event->dress_code }}
+          </p>
+        @endif
+
+        @if ($event->reception_maps_link)
+          <p style="margin-top:15px;">
+            <a href="{{ $event->reception_maps_link }}" target="_blank">
+              📍 Ver ubicación en mapas
+            </a>
+          </p>
+        @endif
+      </div>
+    </div>
+  </div>
+</section>
+
+
 
 <footer>
   <p>{{ $event->bride_name }} & {{ $event->groom_name }} • {{ $fecha_evento->format('Y') }}</p>

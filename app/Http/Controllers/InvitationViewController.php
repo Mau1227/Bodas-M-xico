@@ -4,25 +4,38 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use Illuminate\Http\Request;
+use App\Models\Guest;
 
 class InvitationViewController extends Controller
 {
     /**
      * Muestra la página de la invitación pública.
      */
-    public function show($slug)
+    // app/Http/Controllers/EventPreviewController.php
+
+    public function show(string $slug)
     {
-        // 1. Busca el evento por su URL única. Si no lo encuentra, falla (error 404).
-        $event = Event::where('custom_url_slug', $slug)// Opcional: solo muestra eventos publicados
-                      ->firstOrFail();
+        $event = Event::where('custom_url_slug', $slug)->firstOrFail();
+        // Invitado “falso” para la vista previa
+        $dummyGuest = new Guest([
+            'full_name'       => 'Nombre del invitado',
+            'email'           => 'invitado@ejemplo.com',
+            'phone'           => '999 999 9999',
+            'max_companions'  => 1,      // → 2 pases en total
+            'status'          => 'pending',
+            'dietary_restrictions' => null,
+            'message_to_couple'    => null,
+        ]);
 
-        // 2. Obtiene el nombre del archivo de la plantilla (ej. 'plantillas.romantica-floral')
-        //    (Asumimos que la columna 'view_file' en tu tabla 'templates' está llena)
-        $templateView = $event->template->view_file; // <- 'plantillas.romantica-floral'
+        $view = $event->template->view_file;
+        $totalPases = 1 + $dummyGuest->max_companions;
 
-        // 3. Muestra esa vista y le pasa la variable $event
-        return view($templateView, [
-            'event' => $event
+        return view($view, [
+            'event'            => $event,
+            'guest'            => $dummyGuest,
+            'alreadyConfirmed' => false,
+            'isPreview'        => true,   // 👈 bandera importante
+            'totalPases'       => $totalPases,
         ]);
     }
 }

@@ -80,6 +80,19 @@
                     Mi Evento
                 </a>
 
+                <a href="{{ route('guests.index') }}"
+                    @class([
+                            'group flex items-center rounded-md px-3 py-2 text-sm font-medium',
+                            'bg-purple-100 text-purple-700' => isActive('guests'),
+                            'text-gray-600 hover:bg-gray-50 hover:text-gray-900' => !isActive('guests'),
+                    ])>
+                        <svg class="mr-3 h-6 w-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M12 12a4 4 0 100-8 4 4 0 000 8z"/>
+                        </svg>
+                        Invitados
+                </a>
+                
                 </nav>
         </div>
         

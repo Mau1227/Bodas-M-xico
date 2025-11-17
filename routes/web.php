@@ -6,6 +6,8 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\InvitationViewController; 
 use App\Http\Controllers\EventPhotoController;
 use App\Http\Controllers\ItineraryController;
+use App\Http\Controllers\GuestController;
+use App\Http\Controllers\GuestRsvpController;
 
 // --- RUTAS PÚBLICAS (Marketing) ---
 
@@ -55,7 +57,7 @@ Route::get('/', function () {
 
 // --- RUTA DE LA INVITACIÓN PÚBLICA ---
 // Esta es la URL que verán los invitados (ej. /e/boda-mauroyandy)
-Route::get('/e/{slug}', [InvitationViewController::class, 'show'])->name('invitation.show');
+Route::get('/e/{event:custom_url_slug}', [InvitationViewController::class, 'show'])->name('invitation.show');
 
 
 // --- RUTAS DE AUTENTICACIÓN ---
@@ -65,4 +67,25 @@ Auth::routes();
 Route::middleware(['auth'])->group(function () {
     // ... (tus rutas de 'home' y 'evento.*' van aquí)
 });
+
+// Rutas de invitados
+Route::middleware(['auth'])->group(function () {
+    Route::get('/guests', [GuestController::class, 'index'])->name('guests.index');
+    Route::post('/guests', [GuestController::class, 'store'])->name('guests.store');
+    Route::put('/guests/{guest}', [GuestController::class, 'update'])->name('guests.update');
+    Route::delete('/guests/{guest}', [GuestController::class, 'destroy'])->name('guests.destroy');
+
+    // importación masiva CSV (solo PREMIUM más adelante)
+    Route::post('/guests/import', [GuestController::class, 'import'])->name('guests.import');
+});
+
+
+Route::get('/{slug}/i/{token}', [GuestRsvpController::class, 'show'])
+    ->name('rsvp.show');
+
+Route::post('/{slug}/i/{token}', [GuestRsvpController::class, 'submit'])
+    ->name('rsvp.submit');
+
+
+Route::get('/guests/template', [GuestController::class, 'template'])->name('guests.template');
 
