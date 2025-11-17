@@ -77,6 +77,15 @@ Route::middleware(['auth'])->group(function () {
 
     // importación masiva CSV (solo PREMIUM más adelante)
     Route::post('/guests/import', [GuestController::class, 'import'])->name('guests.import');
+
+    Route::get('/guests/invitations', [GuestController::class, 'invitations'])
+        ->name('guests.invitations');
+
+    Route::post('/guests/invitations/send-bulk', [GuestController::class, 'sendBulk'])
+        ->name('guests.invitations.sendBulk');
+
+    Route::post('/guests/{guest}/send-invitation', [GuestController::class, 'sendSingle'])
+        ->name('guests.invitations.sendSingle');
 });
 
 

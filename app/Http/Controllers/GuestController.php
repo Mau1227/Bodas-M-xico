@@ -7,6 +7,8 @@ use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\GuestInvitationMail;
 
 class GuestController extends Controller
 {
@@ -179,6 +181,81 @@ class GuestController extends Controller
             ->with('status', "Importación completada. Se agregaron {$created} invitado(s).");
     }
 
+        // 📩 Pantalla "Mandar invitaciones"
+    public function invitations()
+    {
+        $user  = Auth::user();
+        $event = $user->event ?? $user->events()->firstOrFail();
+
+        $guests = $event->guests()
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return view('guests.invitations', compact('event', 'guests'));
+    }
+
+    // 📩 Envío masivo de invitaciones seleccionadas
+    public function sendBulk(Request $request)
+    {
+        $user  = Auth::user();
+        $event = $user->event ?? $user->events()->firstOrFail();
+
+        $request->validate([
+            'guests' => ['required', 'array'],
+        ]);
+
+        $guests = $event->guests()
+            ->whereIn('id', $request->guests)
+            ->whereNotNull('email')
+            ->get();
+
+        if ($guests->isEmpty()) {
+            return back()->with('status', 'No hay invitados válidos para enviar.');
+        }
+
+        foreach ($guests as $guest) {
+            // si no tiene token, generamos uno por seguridad
+            if (! $guest->invitation_token) {
+                $guest->invitation_token = Str::random(24);
+            }
+
+            Mail::to($guest->email)->send(new GuestInvitationMail($guest));
+
+            $guest->invitation_sent_at = now();
+            $guest->save();
+        }
+
+        return back()->with('status', 'Invitaciones enviadas correctamente.');
+    }
+
+    // 📩 Reenviar invitación individual
+    public function sendSingle(Guest $guest)
+    {
+        $user  = Auth::user();
+        $event = $user->event ?? $user->events()->firstOrFail();
+
+        // seguridad: que sea del evento del usuario
+        if ($guest->event_id !== $event->id) {
+            abort(403);
+        }
+
+        if (! $guest->email) {
+            return back()->with('status', 'Este invitado no tiene correo electrónico.');
+        }
+
+        if (! $guest->invitation_token) {
+            $guest->invitation_token = Str::random(24);
+        }
+
+        Mail::to($guest->email)->send(new GuestInvitationMail($guest));
+
+        $guest->invitation_sent_at = now();
+        $guest->save();
+
+        return back()->with('status', 'Invitación enviada / reenviada correctamente.');
+    }
+
+
     public function template()
     {
         $headers = [
@@ -193,6 +270,5 @@ class GuestController extends Controller
 
         return response($content, 200, $headers);
     }
-
 
 }

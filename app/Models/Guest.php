@@ -33,4 +33,20 @@ class Guest extends Model
     {
         return $this->belongsTo(Event::class);
     }
+
+    // 🔗 URL única de invitación para este invitado
+    public function getInvitationUrlAttribute()
+    {
+        $event = $this->event;
+
+        if (! $event || empty($event->custom_url_slug) || empty($this->invitation_token)) {
+            return null;
+        }
+
+        return route('rsvp.show', [
+            'slug'  => $event->custom_url_slug,
+            'token' => $this->invitation_token,
+        ]);
+    }
+
 }
