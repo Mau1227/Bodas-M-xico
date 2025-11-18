@@ -217,6 +217,7 @@ class GuestController extends Controller
             // si no tiene token, generamos uno por seguridad
             if (! $guest->invitation_token) {
                 $guest->invitation_token = Str::random(24);
+                $guest->save();
             }
 
             Mail::to($guest->email)->send(new GuestInvitationMail($guest));

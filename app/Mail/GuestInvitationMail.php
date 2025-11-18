@@ -23,7 +23,7 @@ class GuestInvitationMail extends Mailable
         $event = $this->guest->event;
 
         return $this->subject("Invitación a la boda de {$event->title}")
-            ->view('emails.guests.invitation')
+            ->view('emails.guests.invitations')
             ->with([
                 'guest' => $this->guest,
                 'event' => $event,
