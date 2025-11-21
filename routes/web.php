@@ -58,6 +58,12 @@ Route::get('/', function () {
 // --- RUTA DE LA INVITACIÓN PÚBLICA ---
 // Esta es la URL que verán los invitados (ej. /e/boda-mauroyandy)
 Route::get('/e/{event:custom_url_slug}', [InvitationViewController::class, 'show'])->name('invitation.show');
+Route::get('/{slug}/i/{token}', [GuestRsvpController::class, 'show'])
+    ->name('rsvp.show');
+
+Route::post('/{slug}/i/{token}', [GuestRsvpController::class, 'submit'])
+    ->name('rsvp.submit');
+
 
 
 // --- RUTAS DE AUTENTICACIÓN ---
@@ -87,13 +93,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/guests/{guest}/send-invitation', [GuestController::class, 'sendSingle'])
         ->name('guests.invitations.sendSingle');
 });
-
-
-Route::get('/{slug}/i/{token}', [GuestRsvpController::class, 'show'])
-    ->name('rsvp.show');
-
-Route::post('/{slug}/i/{token}', [GuestRsvpController::class, 'submit'])
-    ->name('rsvp.submit');
 
 
 Route::get('/guests/template', [GuestController::class, 'template'])->name('guests.template');

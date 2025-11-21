@@ -77,8 +77,12 @@ class GuestRsvpController extends Controller
             : 'Gracias por avisarnos. Lamentamos que no puedas asistir 🕊️';
 
         // Redirigimos otra vez a la misma invitación (misma plantilla)
-        return redirect()
-            ->route('rsvp.show', ['slug' => $slug, 'token' => $token])
+        $url = route('rsvp.show', [
+            'slug'  => $event->custom_url_slug,
+            'token' => $guest->invitation_token,
+        ]);
+
+        return redirect($url . '#rsvp')
             ->with('rsvp_status', $mensaje);
     }
 }

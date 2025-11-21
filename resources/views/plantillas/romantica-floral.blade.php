@@ -171,7 +171,7 @@ a:hover,a:focus{color:var(--gold)}
 
 /* Cards */
 .card{background:var(--white);padding:60px 50px;border-radius:25px;box-shadow:0 15px 50px rgba(0,0,0,0.1);transition:all 0.5s;border:3px solid transparent;position:relative;overflow:hidden}
-.card::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(168,202,173,0.15) 0%,transparent 70%);transform:scale(0);transition:transform 0.6s}
+.card::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(168,202,173,0.15) 0%,transparent 70%);transform:scale(0);transition:transform 0.6s; pointer-events:none;z-index: 0;}
 .card:hover::before{transform:scale(1)}
 .card:hover{transform:translateY(-12px);border-color:var(--mint);box-shadow:0 25px 70px rgba(125,155,123,0.2)}
 
@@ -323,9 +323,30 @@ footer p{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-style:ita
 
 <div id="modalInicial" class="modal active" role="dialog" aria-labelledby="modalTitle" aria-modal="true">
   <div class="modal-content">
-    <h2 id="modalTitle">{{ $guest->full_name }} <br> Has recibido una invitación</h2>
-    <p>Celebra con nosotros el día más importante de nuestras vidas</p>
-    <button type="button" class="btn" id="btnEntrar"><span>Abrir invitación</span></button>
+    @php
+        $hasResponded = in_array($guest->status, ['confirmed', 'declined'])
+            || $guest->confirmed_companions > 0
+            || !empty($guest->dietary_restrictions)
+            || !empty($guest->message_to_couple);
+    @endphp
+
+    <p class="mb-8" style="font-size:1.3rem;">
+      @if ($guest->status === 'confirmed')
+          Querid@ <strong>{{ $guest->full_name }}</strong>, ¡ya recibimos tu confirmación! 🥳  
+          Si necesitas cambiar algún detalle, puedes actualizar tu respuesta aquí mismo.
+      @elseif ($guest->status === 'declined')
+          Querid@ <strong>{{ $guest->full_name }}</strong>, sentimos que no podrás asistir 💚  
+          Si cambias de opinión, puedes actualizar tu respuesta desde este mismo formulario.
+      @else
+          Querid@ <strong>{{ $guest->full_name }}</strong>, nos encantará saber si podrás acompañarnos
+          en este día tan especial 💌
+      @endif
+    </p>
+    <button type="button" class="btn" id ="btnEntrar">
+              <span>
+                  {{ $hasResponded ? 'Actualizar respuesta' : 'Enviar respuesta' }}
+              </span>
+    </button>
   </div>
 </div>
 
@@ -517,10 +538,26 @@ footer p{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-style:ita
   <div class="container">
     <h2 class="section-title">Confirma tu asistencia</h2>
 
+    @php
+        $hasResponded = in_array($guest->status, ['confirmed', 'declined'])
+            || $guest->confirmed_companions > 0
+            || !empty($guest->dietary_restrictions)
+            || !empty($guest->message_to_couple);
+    @endphp
+
     <p class="mb-8" style="font-size:1.3rem;">
-      Querid@ <strong>{{ $guest->full_name }}</strong>, nos encantará saber si podrás acompañarnos
-      en este día tan especial 💌
-    </p>
+    @if ($guest->status === 'confirmed')
+        Querid@ <strong>{{ $guest->full_name }}</strong>, ¡ya recibimos tu confirmación! 🥳  
+        Si necesitas cambiar algún detalle, puedes actualizar tu respuesta aquí mismo.
+    @elseif ($guest->status === 'declined')
+        Querid@ <strong>{{ $guest->full_name }}</strong>, sentimos que no podrás asistir 💚  
+        Si cambias de opinión, puedes actualizar tu respuesta desde este mismo formulario.
+    @else
+        Querid@ <strong>{{ $guest->full_name }}</strong>, nos encantará saber si podrás acompañarnos
+        en este día tan especial 💌
+    @endif
+  </p>
+
 
     {{-- Mensajes de estado (solo tienen sentido en modo real) --}}
     @if (!$isPreview)
@@ -610,9 +647,11 @@ footer p{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-style:ita
             </div>
 
             <div style="text-align:center;margin-top:20px;">
-              <button type="button" class="btn" disabled>
-                <span>Enviar respuesta (solo vista previa)</span>
-              </button>
+              <button type="submit" class="btn">
+              <span>
+                  {{ $hasResponded ? 'Actualizar respuesta' : 'Enviar respuesta' }}
+              </span>
+            </button>
             </div>
           </div>
         @else
