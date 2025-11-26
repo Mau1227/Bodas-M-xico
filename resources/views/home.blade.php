@@ -10,27 +10,27 @@
         
         <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
             <h3 class="text-sm font-medium text-gray-500">Total Invitados</h3>
-            <p class="mt-1 text-4xl font-bold text-gray-900">0</p>
+            <p class="mt-1 text-4xl font-bold text-gray-900">{{ $totalInvitados }}</p>
         </div>
 
         <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
             <h3 class="text-sm font-medium text-gray-500">Confirmados</h3>
-            <p class="mt-1 text-4xl font-bold text-teal-600">0</p>
+            <p class="mt-1 text-4xl font-bold text-teal-600">{{ $confirmados }}</p>
         </div>
 
         <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
             <h3 class="text-sm font-medium text-gray-500">Pendientes</h3>
-            <p class="mt-1 text-4xl font-bold text-orange-500">0</p>
+            <p class="mt-1 text-4xl font-bold text-orange-500">{{ $pendientes }}</p>
         </div>
 
         <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
             <h3 class="text-sm font-medium text-gray-500">No Asisten</h3>
-            <p class="mt-1 text-4xl font-bold text-red-600">0</p>
+            <p class="mt-1 text-4xl font-bold text-red-600">{{ $noAsisten }}</p>
         </div>
         
         <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
             <h3 class="text-sm font-medium text-gray-500">Total Personas</h3>
-            <p class="mt-1 text-4xl font-bold text-purple-700">0</p>
+            <p class="mt-1 text-4xl font-bold text-purple-700">{{ $totalPersonas }}</p>
         </div>
     </div>
 

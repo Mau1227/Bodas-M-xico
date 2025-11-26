@@ -66,9 +66,6 @@ class EventController extends Controller
             'additional_info' => 'nullable|string',
         ], $messages); // <-- ¡Aquí pasamos los mensajes!
 
-        // 3. (¡YA NO NECESITAMOS LA LÍNEA QUE FALLABA!)
-        // $data = $request->validated(); // <-- BORRA ESTA LÍNEA
-
         // 4. Añade el ID del usuario logueado
         $data['user_id'] = Auth::id();
 
@@ -97,7 +94,7 @@ class EventController extends Controller
         ]);
     }
 
-public function update(Request $request, Event $event)
+    public function update(Request $request, Event $event)
     {
         // ¡Seguridad!
         if ($event->user_id !== Auth::id()) {
@@ -179,4 +176,6 @@ public function update(Request $request, Event $event)
         // 2. Redirige al dashboard con un mensaje
         return redirect()->route('home')->with('success', '¡Evento eliminado exitosamente!');
     }
+
+
 }

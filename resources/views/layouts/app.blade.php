@@ -108,6 +108,34 @@
                     Mandar invitaciones
                 </a>
 
+                {{-- Mensajes de Invitados --}}
+                <a href="{{ route('messages.index') }}"
+                @class([
+                        'group flex items-center rounded-md px-3 py-2 text-sm font-medium',
+                        'bg-purple-100 text-purple-700' => request()->routeIs('guests.messages'),
+                        'text-gray-600 hover:bg-gray-50 hover:text-gray-900' => !request()->routeIs('guests.messages'),
+                ])>
+                    <svg class="mr-3 h-6 w-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 8h10M7 12h4m1 8h-4a3 3 0 01-3-3V5a3 3 0 013-3h10a3 3 0 013 3v7a3 3 0 01-3 3h-4l-4 4z"/>
+                    </svg>
+                    Mensajes de Invitados
+                </a>
+
+                {{--Estadísticas --}}
+                <a href="{{ route('stats.index') }}"
+                @class([
+                        'group flex items-center rounded-md px-3 py-2 text-sm font-medium',
+                        'bg-purple-100 text-purple-700' => request()->routeIs('guests.messages'),
+                        'text-gray-600 hover:bg-gray-50 hover:text-gray-900' => !request()->routeIs('guests.messages'),
+                ])>
+                    <svg class="mr-3 h-6 w-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 8h10M7 12h4m1 8h-4a3 3 0 01-3-3V5a3 3 0 013-3h10a3 3 0 013 3v7a3 3 0 01-3 3h-4l-4 4z"/>
+                    </svg>
+                    Estadísticas
+                </a>
+
                 
                 </nav>
         </div>

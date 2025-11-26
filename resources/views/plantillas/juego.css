@@ -1,0 +1,204 @@
+#logoContainer img{
+    margin-top: 10px;
+    width: 90px;
+}
+
+#tituloContainer{
+    text-align:center;
+    margin-top: 10px;
+    margin-bottom:10px;
+}
+
+#tituloContainer img{
+    width: 70%;
+    height: auto;
+}
+
+#pintaYGana{
+    max-width:680px;
+    margin:0 auto;
+    text-align:center;
+}
+
+#pintaYGana h3{
+    margin: 0 0 10px;
+}
+
+#lienzo{
+    width: 100%;
+    height: auto;
+    border: 2px solid #f4bf44;
+    border-radius: 10px;
+    background: #fffef9;
+    touch-action: none;
+}
+
+#overlayBloqueo{
+    display:none;
+    position:absolute;
+    inset:0;
+    background:rgba(255,255,255,.6);
+    backdrop-filter:blur(1px);
+    border-radius:10px;
+}
+
+#btnLimpiar, #btnBorrar{
+    padding:8px 14px;
+    border-radius:8px;
+    border:1px solid #ddd;
+    background:#fafafa;
+    cursor:pointer;
+    color: #000;
+}
+
+#btnBorrar.activo{
+  outline: 2px solid #3bbfa7;
+  filter: brightness(1.05);
+}
+
+
+#btnLimpiar:hover, #btnBorrar:hover{
+   background: #E3E1E1;
+}
+
+#btnTerminar{
+    padding:8px 14px;
+    border-radius:8px;
+    border:0;
+    background:#ff8a00;
+    color:#fff;
+    cursor:pointer;
+}
+
+#btnTerminar:hover{
+    background: #C27113;
+}
+
+#mensaje{
+    font-weight:600;
+    color:#333;
+    margin:8px 0 4px;
+}
+
+#ayuda{
+    color:#666;
+}
+
+#modalResultado[aria-hidden="true"]{
+    display:none; 
+    
+}
+  
+#modalResultado{
+    position:fixed; inset:0; z-index:99999;
+    background:rgba(0,0,0,.55);
+    display:flex; align-items:center; justify-content:center;
+    padding:16px;
+  }
+  
+#modalCard{
+    background:#fff; border-radius:18px; max-width:520px; width:100%;
+    box-shadow:0 22px 60px rgba(0,0,0,.25); overflow:hidden;
+ }
+  
+ #modalHeader{ 
+     text-align:right; 
+     padding:10px 12px 0 12px; }
+     
+ #btnCerrarModal{ background:transparent; border:0; font-size:22px; cursor:pointer; line-height:1; 
+     
+ }
+ 
+#modalBody {
+  padding: 20px 30px 30px 30px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; 
+  height: auto; 
+}
+
+#btnDescargarCupon {
+  background: #ff8a00;
+  border-radius: 8px;
+  border: none;
+  font-size: 18px;
+  color: #fff;
+  padding: 10px 20px;
+  margin-top: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+
+#btnDescargarCupon:hover {
+  background: #c27113;
+}
+
+#imgResultado {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto 12px; /* espacio moderado debajo */
+  border-radius: 14px;
+}
+
+#txtResultado {
+  font-weight: 800;
+  font-size: 18px;
+  color: #333;
+  margin: 8px 0 6px;
+}
+
+#txtExtra {
+  font-size: 16px;
+  margin: 4px 0 12px;
+  color: #555;
+}
+
+.colorBtn{
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    border:2px solid #fff;
+    box-shadow:0 0 0 2px #ccc;
+    cursor:pointer;
+    margin: 8px;
+}
+
+.colorBtn:hover{
+    transform:scale(1.12);
+    
+}
+  
+.colorBtn.activo{
+    box-shadow:0 0 0 3px var(--colorActivo,#000);
+    
+}
+
+#paletaColores{
+    margin: 20px
+}
+
+#btnCatalogo{
+    text-align: center;
+    font-size: 22px;
+    margin-left: 10px;
+    padding:8px 14px;
+    border-radius:8px;
+    border:1px solid #25D366;
+    background:#25D366;
+    color:#fff;
+    text-decoration:none;
+    cursor:pointer;
+}
+
+@media (max-width: 700px){
+    #modalBody{
+        height: auto;
+    }
+    
+    #btnTerminar{
+        margin: 10px;
+    }
+}

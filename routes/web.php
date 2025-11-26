@@ -1,99 +1,83 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\EventController;
-use App\Http\Controllers\InvitationViewController; 
+use App\Http\Controllers\InvitationViewController;
 use App\Http\Controllers\EventPhotoController;
 use App\Http\Controllers\ItineraryController;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\GuestRsvpController;
+use App\Http\Controllers\StatsController; // <-- este te faltaba
 
-// --- RUTAS PÚBLICAS (Marketing) ---
+// =========================
+// RUTAS PÚBLICAS (Marketing)
+// =========================
 
-// Cuando alguien visite la URL raíz "/", muéstrale la vista "welcome"
 Route::get('/', function () {
     return view('welcome');
 });
 
-// --- RUTAS DE AUTENTICACIÓN ---
-// Esto crea las rutas de /login, /register, /logout
+// -------------------------
+// RUTAS DE AUTENTICACIÓN
+// -------------------------
+
 Auth::routes();
 
-// --- RUTAS DEL DASHBOARD (Protegidas) ---
+// =========================
+// RUTAS PROTEGIDAS (Dashboard)
+// =========================
+
 Route::middleware(['auth'])->group(function () {
-    
-    // Ruta del Dashboard principal
+
+    // Dashboard principal
     Route::get('/home', [HomeController::class, 'index'])->name('home');
 
-    // --- NUEVAS RUTAS PARA EVENTOS ---
-
-    // 1. Ruta para MOSTRAR el formulario de creación
-    // (Ej: /evento/crear)
+    // EVENTOS
     Route::get('/evento/crear', [EventController::class, 'create'])->name('evento.create');
-
-    // 2. Ruta para PROCESAR Y GUARDAR el formulario
-    // (Ej: /evento)
     Route::post('/evento', [EventController::class, 'store'])->name('evento.store');
     Route::get('/evento/{event}/editar', [EventController::class, 'edit'])->name('evento.edit');
     Route::put('/evento/{event}', [EventController::class, 'update'])->name('evento.update');
     Route::delete('/evento/{event}', [EventController::class, 'destroy'])->name('evento.destroy');
 
-    // Ruta para guardar nuevas fotos de galería
+    // FOTOS
     Route::post('/evento/{event}/fotos', [EventPhotoController::class, 'store'])->name('photo.store');
-    // Ruta para eliminar una foto
     Route::delete('/fotos/{photo}', [EventPhotoController::class, 'destroy'])->name('photo.destroy');
 
-    // Ruta para guardar un nuevo item del itinerario
+    // ITINERARIO
     Route::post('/evento/{event}/itinerario', [ItineraryController::class, 'store'])->name('itinerary.store');
-    // Ruta para eliminar un item
     Route::delete('/itinerario/{itinerary}', [ItineraryController::class, 'destroy'])->name('itinerary.destroy');
-});
 
-// --- RUTAS PÚBLICAS (Marketing) ---
-Route::get('/', function () {
-    return view('welcome');
-});
-
-// --- RUTA DE LA INVITACIÓN PÚBLICA ---
-// Esta es la URL que verán los invitados (ej. /e/boda-mauroyandy)
-Route::get('/e/{event:custom_url_slug}', [InvitationViewController::class, 'show'])->name('invitation.show');
-Route::get('/{slug}/i/{token}', [GuestRsvpController::class, 'show'])
-    ->name('rsvp.show');
-
-Route::post('/{slug}/i/{token}', [GuestRsvpController::class, 'submit'])
-    ->name('rsvp.submit');
-
-
-
-// --- RUTAS DE AUTENTICACIÓN ---
-Auth::routes();
-
-// --- RUTAS DEL DASHBOARD (Protegidas) ---
-Route::middleware(['auth'])->group(function () {
-    // ... (tus rutas de 'home' y 'evento.*' van aquí)
-});
-
-// Rutas de invitados
-Route::middleware(['auth'])->group(function () {
+    // GUESTS (invitados)
     Route::get('/guests', [GuestController::class, 'index'])->name('guests.index');
     Route::post('/guests', [GuestController::class, 'store'])->name('guests.store');
     Route::put('/guests/{guest}', [GuestController::class, 'update'])->name('guests.update');
     Route::delete('/guests/{guest}', [GuestController::class, 'destroy'])->name('guests.destroy');
 
-    // importación masiva CSV (solo PREMIUM más adelante)
     Route::post('/guests/import', [GuestController::class, 'import'])->name('guests.import');
 
-    Route::get('/guests/invitations', [GuestController::class, 'invitations'])
-        ->name('guests.invitations');
+    Route::get('/guests/invitations', [GuestController::class, 'invitations'])->name('guests.invitations');
+    Route::post('/guests/invitations/send-bulk', [GuestController::class, 'sendBulk'])->name('guests.invitations.sendBulk');
+    Route::post('/guests/{guest}/send-invitation', [GuestController::class, 'sendSingle'])->name('guests.invitations.sendSingle');
 
-    Route::post('/guests/invitations/send-bulk', [GuestController::class, 'sendBulk'])
-        ->name('guests.invitations.sendBulk');
+    // Stats
+    Route::get('/stats', [StatsController::class, 'index'])->name('stats.index');
 
-    Route::post('/guests/{guest}/send-invitation', [GuestController::class, 'sendSingle'])
-        ->name('guests.invitations.sendSingle');
+    // Template CSV (si quieres que solo el dueño logueado lo descargue)
+    Route::get('/guests/template', [GuestController::class, 'template'])->name('guests.template');
+
+    // Mensajes de Invitados
+    Route::get('/messages', [App\Http\Controllers\MessagesController::class, 'index'])->name('messages.index');
 });
 
+// =========================
+// RUTAS PÚBLICAS DE INVITACIÓN
+// =========================
 
-Route::get('/guests/template', [GuestController::class, 'template'])->name('guests.template');
+// Invitación pública por slug de evento
+Route::get('/e/{event:custom_url_slug}', [InvitationViewController::class, 'show'])->name('invitation.show');
 
+// Invitación para invitado real con token
+Route::get('/{slug}/i/{token}', [GuestRsvpController::class, 'show'])->name('rsvp.show');
+Route::post('/{slug}/i/{token}', [GuestRsvpController::class, 'submit'])->name('rsvp.submit');
