@@ -68,7 +68,7 @@
                     Dashboard (Resumen)
                 </a>
 
-                <a href="{{ route('evento.edit', $event) }}"
+                <a href="{{ route('evento.index') }}"
                    @class([
                         'group flex items-center rounded-md px-3 py-2 text-sm font-medium',
                         'bg-purple-100 text-purple-700' => isActive('dashboard/evento'),
@@ -77,7 +77,7 @@
                     <svg class="mr-3 h-6 w-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
-                    Mi Evento
+                    Mis Eventos
                 </a>
 
                 {{-- Invitados --}}

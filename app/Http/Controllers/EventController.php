@@ -19,65 +19,69 @@ class EventController extends Controller
         $this->middleware('auth');
     }
 
-    /**
-     * Muestra el formulario para crear un nuevo evento.
-     * (Esta es la función para la ruta GET /evento/crear)
-     */
-    public function create()
+    // Paso 1: pantalla con tipos de evento
+    public function chooseType()
     {
-        // Simplemente retorna la vista que CREAREMOS en el siguiente paso
-        return view('events.create');
+        return view('events.choose-type');
     }
 
-    /**
-     * Guarda el nuevo evento en la base de datos.
-     * (Esta es la función para la ruta POST /evento)
-     */
+    // Paso 2: formulario según el tipo elegido
+    public function create(string $type)
+    {
+        $validTypes = ['wedding', 'birthday', 'xv', 'baby_shower', 'corporate', 'other'];
+
+        if (! in_array($type, $validTypes)) {
+            abort(404);
+        }
+
+        return view('events.create', [
+            'eventType' => $type,
+        ]);
+    }
+
     public function store(Request $request)
     {
-        // 1. Definimos los mensajes de error en español
-        $messages = [
-            'required' => 'Este campo es obligatorio.',
-            'string' => 'Este campo debe ser texto.',
-            'date' => 'Por favor, introduce una fecha válida.',
-            'url' => 'Por favor, introduce una URL válida (ej. https://...)',
-            'unique' => 'Esta URL ya está en uso. Prueba con otra.',
-            'alpha_dash' => 'La URL solo puede contener letras, números y guiones (-).',
-        ];
+        $validTypes = ['wedding', 'birthday', 'xv', 'baby_shower', 'corporate', 'other'];
 
-        // 2. Validación
-        // Guardamos el resultado de validate() directamente en $data.
-        // Si la validación falla, Laravel redirige automáticamente.
         $data = $request->validate([
-            'groom_name' => 'required|string|max:255',
-            'bride_name' => 'required|string|max:255',
-            'custom_url_slug' => 'required|string|unique:events|alpha_dash',
-            'wedding_date' => 'required|date',
-            'ceremony_time' => 'required',
-            'ceremony_venue_name' => 'required|string',
-            'ceremony_venue_address' => 'required|string',
-            'reception_time' => 'required',
-            'reception_venue_name' => 'required|string',
-            'reception_venue_address' => 'required|string',
-            'ceremony_maps_link' => 'nullable|url',
-            'reception_maps_link' => 'nullable|url',
-            'welcome_message' => 'nullable|string',
-            'dress_code' => 'nullable|string',
-            'additional_info' => 'nullable|string',
-        ], $messages); // <-- ¡Aquí pasamos los mensajes!
+            'event_type'   => ['required', Rule::in($validTypes)],
+            'event_title'  => ['nullable', 'string', 'max:255'],
 
-        // 4. Añade el ID del usuario logueado
-        $data['user_id'] = Auth::id();
+            'groom_name'   => ['required_if:event_type,wedding', 'nullable', 'string', 'max:255'],
+            'bride_name'   => ['required_if:event_type,wedding', 'nullable', 'string', 'max:255'],
 
-        // 5. Crea el evento en la base de datos
-        Event::create($data);
+            'host_names'   => ['required_unless:event_type,wedding', 'nullable', 'string', 'max:255'],
 
-        // 6. Redirige al usuario de vuelta al dashboard con un mensaje
-        return redirect()->route('home')->with('success', '¡Evento creado exitosamente!');
+            'custom_url_slug' => ['required', 'string', 'max:255', 'unique:events,custom_url_slug'],
+
+            // La usamos como “fecha del evento” en general
+            'wedding_date' => ['required', 'date'],
+
+            'ceremony_time'          => ['required'],
+            'ceremony_venue_name'    => ['required', 'string'],
+            'ceremony_venue_address' => ['required', 'string'],
+            'ceremony_maps_link'     => ['nullable', 'string'],
+
+            'reception_time'          => ['required'],
+            'reception_venue_name'    => ['required', 'string'],
+            'reception_venue_address' => ['required', 'string'],
+            'reception_maps_link'     => ['nullable', 'string'],
+        ]);
+
+        $data['user_id'] = auth()->id();
+
+        $event = Event::create($data);
+
+        return redirect()
+            ->route('evento.edit', $event)
+            ->with('success', 'Evento creado correctamente.');
     }
 
     public function edit(Event $event)
     {
+        $user = auth()->user();
+        $events = $user->events()->orderBy('wedding_date', 'asc')->get();
+
         // ¡Seguridad!
         if ($event->user_id !== Auth::id()) {
             abort(403, 'Acción no autorizada.');
@@ -90,7 +94,8 @@ class EventController extends Controller
         // 2. Pasa el evento Y las plantillas a la vista
         return view('events.edit', [
             'event' => $event,
-            'templates' => $templates // <-- ¡ASEGÚRATE DE QUE ESTA LÍNEA EXISTA!
+            'events'    => $events,
+            'templates' => $templates
         ]);
     }
 
@@ -112,11 +117,16 @@ class EventController extends Controller
 
         // 2. Validación (CON LOS CAMPOS NUEVOS AÑADIDOS)
         $data = $request->validate([
+
+            'event_type'   => ['required', Rule::in(['wedding','birthday','xv','baby_shower','corporate','other'])],
+            'event_title'  => ['nullable','string','max:255'],
+            'host_names'   => ['required_unless:event_type,wedding','nullable','string','max:255'],
+
             // Info Básica
-            'groom_name' => 'required|string|max:255',
-            'bride_name' => 'required|string|max:255',
+            'groom_name'   => ['required_if:event_type,wedding','nullable','string','max:255'],
+            'bride_name'   => ['required_if:event_type,wedding','nullable','string','max:255'],
             'custom_url_slug' => ['required', 'string', 'alpha_dash', Rule::unique('events')->ignore($event->id)],
-            'wedding_date' => 'required|date',
+            'wedding_date' => ['required','date'],
 
             // Ceremonia
             'ceremony_time' => 'required',
@@ -178,4 +188,13 @@ class EventController extends Controller
     }
 
 
+    public function index()
+    {
+        $events = auth()->user()
+            ->events()
+            ->orderBy('wedding_date', 'asc')
+            ->get();
+
+        return view('events.index', compact('events'));
+    }
 }

@@ -47,10 +47,11 @@
                 Mis Eventos
             </h2>
             
-            <a href="{{ route('evento.create') }}" 
-               class="gradient-primary text-white px-6 py-2 rounded-full font-semibold hover:shadow-lg transition transform hover:scale-105 inline-block">
+            <a href="{{ route('evento.chooseType') }}"
+            class="gradient-primary text-white px-6 py-2 rounded-full font-semibold hover:shadow-lg transition transform hover:scale-105 inline-block">
                 Crear Nuevo Evento
             </a>
+
         </div>
 
         <div class="overflow-x-auto">

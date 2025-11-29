@@ -2,6 +2,29 @@
 
 @section('content')
 
+    {{-- Selector de evento --}}
+    @if(isset($events) && $events->count() > 1)
+        <div class="mb-4 flex items-center gap-3">
+            <label for="event_switcher" class="text-sm text-gray-600">
+                Estás editando:
+            </label>
+            <select id="event_switcher"
+                    class="form-control max-w-xs"
+                    onchange="if (this.value) window.location.href = this.value;">
+                @foreach($events as $ev)
+                    <option value="{{ route('evento.edit', $ev) }}"
+                            @selected($ev->id === $event->id)>
+                        {{ $ev->display_title }}
+                        @if($ev->wedding_date)
+                            ({{ \Illuminate\Support\Carbon::parse($ev->wedding_date)->format('d/m/Y') }})
+                        @endif
+                    </option>
+                @endforeach
+            </select>
+        </div>
+    @endif
+
+
     <h1 class="text-3xl font-bold text-gray-900 mb-6">
         Editar Evento: {{ $event->groom_name }} & {{ $event->bride_name }}
     </h1>
@@ -24,33 +47,78 @@
     @endif
 
 
+    {{-- Título del evento --}}
+    <div class="mb-4">
+        <label class="form-label">Título del evento</label>
+        <input type="text"
+            name="event_title"
+            class="form-control"
+            value="{{ old('event_title', $event->event_title ?? $event->display_title) }}"
+            placeholder="Ej. Boda de Mauro y Andrea, Cumpleaños de Sofía...">
+    </div>
+
+
     <form action="{{ route('evento.update', $event) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
+
+        {{-- Tipo de evento --}}
+        <input type="hidden" name="event_type" value="{{ $event->event_type }}">
+
+        <div class="mb-4">
+            <label class="form-label">Tipo de evento</label>
+            <select class="form-control" disabled>
+                <option value="wedding"  @selected($event->event_type == 'wedding')>Boda</option>
+                <option value="birthday" @selected($event->event_type == 'birthday')>Cumpleaños</option>
+                <option value="xv"       @selected($event->event_type == 'xv')>XV Años</option>
+                <option value="baby_shower" @selected($event->event_type == 'baby_shower')>Baby Shower</option>
+                <option value="corporate"   @selected($event->event_type == 'corporate')>Evento Corporativo</option>
+                <option value="other"       @selected($event->event_type == 'other')>Otro</option>
+            </select>
+        </div>
 
         <div class="bg-white p-6 md:p-8 rounded-2xl shadow-md border border-gray-100 space-y-8">
 
             <fieldset>
                 <legend class="text-xl font-semibold text-gray-900">Información del Evento</legend>
 
-                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="groom_name" class="block text-sm font-medium text-gray-700">Nombre del Novio</label>
-                        <input type="text" name="groom_name" id="groom_name" value="{{ old('groom_name', $event->groom_name) }}" required
-                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 @error('groom_name') ring-2 ring-red-500 @enderror">
-                        @error('groom_name')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
+                {{-- Si es boda, mostramos Novio/Novia --}}
+                @if($event->is_wedding)
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="form-label">Nombre del Novio</label>
+                            <input type="text" name="groom_name" class="form-control"
+                                value="{{ old('groom_name', $event->groom_name) }}">
+                        </div>
+                        <div>
+                            <label class="form-label">Nombre de la Novia</label>
+                            <input type="text" name="bride_name" class="form-control"
+                                value="{{ old('bride_name', $event->bride_name) }}">
+                        </div>
                     </div>
-                    <div>
-                        <label for="bride_name" class="block text-sm font-medium text-gray-700">Nombre de la Novia</label>
-                        <input type="text" name="bride_name" id="bride_name" value="{{ old('bride_name', $event->bride_name) }}" required
-                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 @error('bride_name') ring-2 ring-red-500 @enderror">
-                        @error('bride_name')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
+
+                    <div class="mb-4">
+                        <label class="form-label">Fecha de la boda</label>
+                        <input type="date" name="wedding_date" class="form-control"
+                            value="{{ old('wedding_date', $event->wedding_date?->format('Y-m-d')) }}">
                     </div>
-                </div>
+                @else
+                    {{-- Para otros eventos, solo "Anfitrión(es)" --}}
+                    <div class="mb-4">
+                        <label class="form-label">Anfitrión(es)</label>
+                        <input type="text" name="host_names" class="form-control"
+                            value="{{ old('host_names', $event->host_names) }}"
+                            placeholder="Ej. Sofía López, Familia Ceballos, Empresa XYZ...">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Fecha del evento</label>
+                        <input type="date" name="wedding_date" class="form-control"
+                            value="{{ old('wedding_date', \Illuminate\Support\Carbon::parse($event->wedding_date)->format('Y-m-d')) }}">
+                        {{-- Usamos wedding_date como fecha genérica por ahora --}}
+                    </div>
+                @endif
+
 
                 <div class="mt-6">
                     <label for="custom_url_slug" class="block text-sm font-medium text-gray-700">URL Personalizada</label>

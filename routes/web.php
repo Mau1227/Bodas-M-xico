@@ -35,11 +35,22 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
 
     // EVENTOS
-    Route::get('/evento/crear', [EventController::class, 'create'])->name('evento.create');
+    // Paso 1: elegir tipo de evento
+    Route::get('/evento/crear', [EventController::class, 'chooseType'])
+        ->name('evento.chooseType');
+    // Paso 2: formulario según tipo
+    Route::get('/evento/crear/{type}', [EventController::class, 'create'])
+        ->name('evento.create');
+    // Guardar
+    Route::post('/evento', [EventController::class, 'store'])
+        ->name('evento.store');
+        
+    Route::get('/eventos', [EventController::class, 'index'])->name('evento.index');
     Route::post('/evento', [EventController::class, 'store'])->name('evento.store');
     Route::get('/evento/{event}/editar', [EventController::class, 'edit'])->name('evento.edit');
     Route::put('/evento/{event}', [EventController::class, 'update'])->name('evento.update');
     Route::delete('/evento/{event}', [EventController::class, 'destroy'])->name('evento.destroy');
+    
 
     // FOTOS
     Route::post('/evento/{event}/fotos', [EventPhotoController::class, 'store'])->name('photo.store');

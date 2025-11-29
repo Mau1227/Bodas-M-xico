@@ -16,7 +16,8 @@ class Event extends Model
         'reception_venue_name', 'reception_venue_address', 'reception_maps_link',
         'reception_time', 'welcome_message', 'dress_code', 'additional_info',
         'custom_url_slug', 'template_id', 'primary_color', 'secondary_color',
-        'cover_photo_url', 'music_url', 'hashtag', 'status',
+        'cover_photo_url', 'music_url', 'hashtag', 'status', 'event_type',
+        'event_title', 'host_names'
     ];
 
     // 2. Relaciones
@@ -39,6 +40,43 @@ class Event extends Model
     public function template() {
         return $this->belongsTo(Template::class);
     }
+
+    protected function isWedding(): Attribute
+    {
+        return Attribute::get(fn () => $this->event_type === 'wedding' || is_null($this->event_type));
+    }
+
+    protected function displayTitle(): Attribute
+    {
+        return Attribute::get(function () {
+            if ($this->event_title) {
+                return $this->event_title;
+            }
+
+            // Fallback para bodas
+            if ($this->is_wedding) {
+                return trim($this->groom_name . ' & ' . $this->bride_name);
+            }
+
+            return 'Mi evento';
+        });
+    }
+
+    protected function displayHosts(): Attribute
+    {
+        return Attribute::get(function () {
+            if ($this->is_wedding) {
+                return trim($this->groom_name . ' & ' . $this->bride_name);
+            }
+
+            return $this->host_names ?: $this->display_title;
+        });
+    }
+
+    protected $casts = [
+    'wedding_date' => 'date',
+    ];
+
 
     
     // ...Aquí pones las demás: itinerary(), registryLinks(), etc.
