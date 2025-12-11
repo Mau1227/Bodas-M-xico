@@ -87,7 +87,6 @@ class EventController extends Controller
             abort(403, 'Acción no autorizada.');
         }
 
-        // --- ESTA ES LA PARTE IMPORTANTE ---
         // 1. Obtiene todas las plantillas activas de la base de datos
         $templates = Template::where('is_active', true)->get();
 

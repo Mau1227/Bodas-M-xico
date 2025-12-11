@@ -3,7 +3,8 @@
 @section('content')
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-    <div class="flex items-center justify-between mb-6">
+    {{-- Header + botones --}}
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <div>
             <h1 class="text-2xl font-bold text-slate-900">Estadísticas</h1>
             <p class="mt-1 text-sm text-slate-500">
@@ -11,17 +12,17 @@
             </p>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2 md:gap-3 justify-start md:justify-end">
             {{-- Botones PREMIUM (por ahora deshabilitados) --}}
             <button type="button"
                     class="inline-flex items-center px-3 py-2 rounded-lg text-xs font-semibold
-                           bg-slate-100 text-slate-400 cursor-not-allowed"
+                           bg-slate-100 text-slate-400 cursor-not-allowed w-full sm:w-auto justify-center"
                     title="Disponible en versión Premium">
                 ⬇️ Excel (Premium)
             </button>
             <button type="button"
                     class="inline-flex items-center px-3 py-2 rounded-lg text-xs font-semibold
-                           bg-slate-100 text-slate-400 cursor-not-allowed"
+                           bg-slate-100 text-slate-400 cursor-not-allowed w-full sm:w-auto justify-center"
                     title="Disponible en versión Premium">
                 ⬇️ PDF (Premium)
             </button>
@@ -36,7 +37,7 @@
     @endif
 
     {{-- Tarjeta resumen --}}
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
             <h3 class="text-sm font-medium text-gray-500">Total Invitados</h3>
             <p class="mt-1 text-3xl md:text-4xl font-bold text-gray-900">{{ $totalInvitados }}</p>
@@ -69,7 +70,9 @@
         {{-- Gráfica circular --}}
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <h2 class="text-sm font-semibold text-slate-800 mb-4">Distribución de respuestas</h2>
-            <canvas id="pieChart" height="260"></canvas>
+            <div class="relative h-64">
+                <canvas id="pieChart" class="w-full h-full"></canvas>
+            </div>
         </div>
 
         {{-- Línea de tiempo --}}
@@ -80,7 +83,9 @@
                     Aún no hay suficientes respuestas para mostrar la línea de tiempo.
                 </p>
             @else
-                <canvas id="lineChart" height="260"></canvas>
+                <div class="relative h-64">
+                    <canvas id="lineChart" class="w-full h-full"></canvas>
+                </div>
             @endif
         </div>
     </div>
@@ -112,6 +117,8 @@
                 }]
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: {
                         position: 'bottom',
@@ -142,6 +149,8 @@
                 }]
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     x: {
                         ticks: { font: { size: 11 } }

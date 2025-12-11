@@ -89,6 +89,11 @@ Route::middleware(['auth'])->group(function () {
 // Invitación pública por slug de evento
 Route::get('/e/{event:custom_url_slug}', [InvitationViewController::class, 'show'])->name('invitation.show');
 
+// Vista previa de plantilla para el creador del evento
+Route::get('/e/{slug}/preview/{template}', [InvitationViewController::class, 'previewTemplate'])
+    ->name('invitation.previewTemplate');
+
 // Invitación para invitado real con token
 Route::get('/{slug}/i/{token}', [GuestRsvpController::class, 'show'])->name('rsvp.show');
 Route::post('/{slug}/i/{token}', [GuestRsvpController::class, 'submit'])->name('rsvp.submit');
+

@@ -24,8 +24,9 @@
         </div>
     @endif
 
+
     <h1 class="text-3xl font-bold text-gray-900 mb-6">
-        Editar Evento: {{ $event->display_title }}
+        Editar Evento: {{ $event->groom_name }} & {{ $event->bride_name }}
     </h1>
 
     @if ($errors->any())
@@ -45,6 +46,7 @@
         </div>
     @endif
 
+
     {{-- Título del evento --}}
     <div class="mb-4">
         <label class="form-label">Título del evento</label>
@@ -55,27 +57,23 @@
             placeholder="Ej. Boda de Mauro y Andrea, Cumpleaños de Sofía...">
     </div>
 
+
     <form action="{{ route('evento.update', $event) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
-        {{-- Tipo de evento (no editable aquí) --}}
+        {{-- Tipo de evento --}}
         <input type="hidden" name="event_type" value="{{ $event->event_type }}">
-
-        @php
-            // Si hubo error de validación, respetamos lo que se mandó en el request
-            $tipoEvento = old('event_type', $event->event_type);
-        @endphp
 
         <div class="mb-4">
             <label class="form-label">Tipo de evento</label>
             <select class="form-control" disabled>
-                <option value="wedding"  @selected($tipoEvento == 'wedding')>Boda</option>
-                <option value="birthday" @selected($tipoEvento == 'birthday')>Cumpleaños</option>
-                <option value="xv"       @selected($tipoEvento == 'xv')>XV Años</option>
-                <option value="baby_shower" @selected($tipoEvento == 'baby_shower')>Baby Shower</option>
-                <option value="corporate"   @selected($tipoEvento == 'corporate')>Evento Corporativo</option>
-                <option value="other"       @selected($tipoEvento == 'other')>Otro</option>
+                <option value="wedding"  @selected($event->event_type == 'wedding')>Boda</option>
+                <option value="birthday" @selected($event->event_type == 'birthday')>Cumpleaños</option>
+                <option value="xv"       @selected($event->event_type == 'xv')>XV Años</option>
+                <option value="baby_shower" @selected($event->event_type == 'baby_shower')>Baby Shower</option>
+                <option value="corporate"   @selected($event->event_type == 'corporate')>Evento Corporativo</option>
+                <option value="other"       @selected($event->event_type == 'other')>Otro</option>
             </select>
         </div>
 
@@ -84,37 +82,43 @@
             <fieldset>
                 <legend class="text-xl font-semibold text-gray-900">Información del Evento</legend>
 
-                {{-- Si es boda, mostramos Novio/Novia; si no, Anfitrión(es) --}}
-                @if($tipoEvento === 'wedding')
+                {{-- Si es boda, mostramos Novio/Novia --}}
+                @if($event->is_wedding)
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div>
                             <label class="form-label">Nombre del Novio</label>
                             <input type="text" name="groom_name" class="form-control"
-                                   value="{{ old('groom_name', $event->groom_name) }}">
+                                value="{{ old('groom_name', $event->groom_name) }}">
                         </div>
                         <div>
                             <label class="form-label">Nombre de la Novia</label>
                             <input type="text" name="bride_name" class="form-control"
-                                   value="{{ old('bride_name', $event->bride_name) }}">
+                                value="{{ old('bride_name', $event->bride_name) }}">
                         </div>
                     </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Fecha de la boda</label>
+                        <input type="date" name="wedding_date" class="form-control"
+                            value="{{ old('wedding_date', $event->wedding_date?->format('Y-m-d')) }}">
+                    </div>
                 @else
+                    {{-- Para otros eventos, solo "Anfitrión(es)" --}}
                     <div class="mb-4">
                         <label class="form-label">Anfitrión(es)</label>
                         <input type="text" name="host_names" class="form-control"
-                               value="{{ old('host_names', $event->host_names) }}"
-                               placeholder="Ej. Sofía López, Familia Ceballos, Empresa XYZ...">
+                            value="{{ old('host_names', $event->host_names) }}"
+                            placeholder="Ej. Sofía López, Familia Ceballos, Empresa XYZ...">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Fecha del evento</label>
+                        <input type="date" name="wedding_date" class="form-control"
+                            value="{{ old('wedding_date', \Illuminate\Support\Carbon::parse($event->wedding_date)->format('Y-m-d')) }}">
+                        {{-- Usamos wedding_date como fecha genérica por ahora --}}
                     </div>
                 @endif
 
-                {{-- Una sola fecha con label dinámico --}}
-                <div class="mb-4">
-                    <label class="form-label">
-                        {{ $tipoEvento === 'wedding' ? 'Fecha de la boda' : 'Fecha del evento' }}
-                    </label>
-                    <input type="date" name="wedding_date" class="form-control"
-                           value="{{ old('wedding_date', optional($event->wedding_date)->format('Y-m-d')) }}">
-                </div>
 
                 <div class="mt-6">
                     <label for="custom_url_slug" class="block text-sm font-medium text-gray-700">URL Personalizada</label>
@@ -122,8 +126,7 @@
                         <span class="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">
                             festlink.events/e/
                         </span>
-                        <input type="text" name="custom_url_slug" id="custom_url_slug"
-                               value="{{ old('custom_url_slug', $event->custom_url_slug) }}" required
+                        <input type="text" name="custom_url_slug" id="custom_url_slug" value="{{ old('custom_url_slug', $event->custom_url_slug) }}" required
                                placeholder="ej: juanylupe"
                                class="block w-full min-w-0 flex-1 rounded-none rounded-r-md border-gray-300 focus:border-purple-500 focus:ring-purple-500 @error('custom_url_slug') ring-2 ring-red-500 @enderror">
                     </div>
@@ -133,6 +136,15 @@
                         <p class="mt-2 text-sm text-gray-500">Solo letras minúsculas, números y guiones (ej. 'boda-ana-y-carlos').</p>
                     @enderror
                 </div>
+                
+                <div class="mt-6">
+                    <label for="wedding_date" class="block text-sm font-medium text-gray-700">Fecha de la Boda</label>
+                    <input type="date" name="wedding_date" id="wedding_date" value="{{ old('wedding_date', $event->wedding_date) }}" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 @error('wedding_date') ring-2 ring-red-500 @enderror">
+                    @error('wedding_date')
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
             </fieldset>
 
             <fieldset class="border-t border-gray-200 pt-6">
@@ -140,29 +152,25 @@
                 <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="ceremony_time" class="block text-sm font-medium text-gray-700">Hora</label>
-                        <input type="time" name="ceremony_time" id="ceremony_time"
-                               value="{{ old('ceremony_time', $event->ceremony_time) }}" required
+                        <input type="time" name="ceremony_time" id="ceremony_time" value="{{ old('ceremony_time', $event->ceremony_time) }}" required
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 @error('ceremony_time') ring-2 ring-red-500 @enderror">
                         @error('ceremony_time') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label for="ceremony_venue_name" class="block text-sm font-medium text-gray-700">Lugar (Nombre)</label>
-                        <input type="text" name="ceremony_venue_name" id="ceremony_venue_name"
-                               value="{{ old('ceremony_venue_name', $event->ceremony_venue_name) }}" required
+                        <input type="text" name="ceremony_venue_name" id="ceremony_venue_name" value="{{ old('ceremony_venue_name', $event->ceremony_venue_name) }}" required
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 @error('ceremony_venue_name') ring-2 ring-red-500 @enderror">
                         @error('ceremony_venue_name') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div class="md:col-span-2">
                         <label for="ceremony_venue_address" class="block text-sm font-medium text-gray-700">Dirección</label>
-                        <input type="text" name="ceremony_venue_address" id="ceremony_venue_address"
-                               value="{{ old('ceremony_venue_address', $event->ceremony_venue_address) }}" required
+                        <input type="text" name="ceremony_venue_address" id="ceremony_venue_address" value="{{ old('ceremony_venue_address', $event->ceremony_venue_address) }}" required
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 @error('ceremony_venue_address') ring-2 ring-red-500 @enderror">
                         @error('ceremony_venue_address') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div class="md:col-span-2">
                         <label for="ceremony_maps_link" class="block text-sm font-medium text-gray-700">Link de Google Maps</label>
-                        <input type="url" name="ceremony_maps_link" id="ceremony_maps_link"
-                               value="{{ old('ceremony_maps_link', $event->ceremony_maps_link) }}"
+                        <input type="url" name="ceremony_maps_link" id="ceremony_maps_link" value="{{ old('ceremony_maps_link', $event->ceremony_maps_link) }}"
                                placeholder="https://goo.gl/maps/..."
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 @error('ceremony_maps_link') ring-2 ring-red-500 @enderror">
                         @error('ceremony_maps_link') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
@@ -175,29 +183,25 @@
                 <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="reception_time" class="block text-sm font-medium text-gray-700">Hora</label>
-                        <input type="time" name="reception_time" id="reception_time"
-                               value="{{ old('reception_time', $event->reception_time) }}" required
+                        <input type="time" name="reception_time" id="reception_time" value="{{ old('reception_time', $event->reception_time) }}" required
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 @error('reception_time') ring-2 ring-red-500 @enderror">
                         @error('reception_time') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label for="reception_venue_name" class="block text-sm font-medium text-gray-700">Lugar (Nombre)</label>
-                        <input type="text" name="reception_venue_name" id="reception_venue_name"
-                               value="{{ old('reception_venue_name', $event->reception_venue_name) }}" required
+                        <input type="text" name="reception_venue_name" id="reception_venue_name" value="{{ old('reception_venue_name', $event->reception_venue_name) }}" required
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 @error('reception_venue_name') ring-2 ring-red-500 @enderror">
                         @error('reception_venue_name') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div class="md:col-span-2">
                         <label for="reception_venue_address" class="block text-sm font-medium text-gray-700">Dirección</label>
-                        <input type="text" name="reception_venue_address" id="reception_venue_address"
-                               value="{{ old('reception_venue_address', $event->reception_venue_address) }}" required
+                        <input type="text" name="reception_venue_address" id="reception_venue_address" value="{{ old('reception_venue_address', $event->reception_venue_address) }}" required
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 @error('reception_venue_address') ring-2 ring-red-500 @enderror">
                         @error('reception_venue_address') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div class="md:col-span-2">
                         <label for="reception_maps_link" class="block text-sm font-medium text-gray-700">Link de Google Maps</label>
-                        <input type="url" name="reception_maps_link" id="reception_maps_link"
-                               value="{{ old('reception_maps_link', $event->reception_maps_link) }}"
+                        <input type="url" name="reception_maps_link" id="reception_maps_link" value="{{ old('reception_maps_link', $event->reception_maps_link) }}"
                                placeholder="https://goo.gl/maps/..."
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 @error('reception_maps_link') ring-2 ring-red-500 @enderror">
                         @error('reception_maps_link') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
@@ -210,58 +214,45 @@
                 
                 <div class="mt-4">
                     <label class="block text-sm font-medium text-gray-700">Selecciona una Plantilla</label>
-                    <div class="mt-4">
-                        <label class="block text-sm font-medium text-gray-700">Selecciona una Plantilla</label>
-                        <div class="mt-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            @forelse ($templates as $template)
-                                <div class="h-full">
-                                    <input
-                                        type="radio"
-                                        name="template_id"
-                                        id="template-{{ $template->id }}"
-                                        value="{{ $template->id }}"
-                                        class="hidden peer"
-                                        {{ old('template_id', $event->template_id) == $template->id ? 'checked' : '' }}
-                                    />
+                    <div class="mt-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                        @forelse ($templates as $template)
+                            <div class="h-full">
+                            {{-- IMPORTANTE: quitar sr-only y usar hidden --}}
+                            <input
+                                type="radio"
+                                name="template_id"
+                                id="template-{{ $template->id }}"
+                                value="{{ $template->id }}"
+                                class="hidden peer"
+                                {{ old('template_id', $event->template_id) == $template->id ? 'checked' : '' }}
+                            />
 
-                                    <label
-                                        for="template-{{ $template->id }}"
-                                        class="relative border rounded-lg cursor-pointer flex flex-col h-full
-                                            border-gray-300 peer-checked:border-purple-600
-                                            peer-checked:ring-2 peer-checked:ring-purple-500 focus:outline-none"
-                                    >
-                                        {{-- Botón de vista previa --}}
-                                        <a href="{{ route('invitation.previewTemplate', ['slug' => $event->custom_url_slug, 'template' => $template->id]) }}"
-                                        target="_blank"
-                                        class="absolute top-2 right-2 text-[11px] px-2 py-1 rounded-full bg-white/80 text-purple-600 font-semibold shadow hover:bg-purple-50">
-                                            Vista previa
-                                        </a>
-
-                                        <div class="h-32 bg-gray-100 rounded-t-lg flex items-center justify-center">
-                                            <span class="text-gray-400 text-xs">Vista Previa</span>
-                                        </div>
-                                        <div class="p-2 text-center flex-grow flex flex-col justify-center">
-                                            <span class="text-sm font-medium text-gray-900">{{ $template->name }}</span>
-                                            @if($template->is_premium)
-                                                <span class="block text-xs text-purple-600 font-bold">PREMIUM</span>
-                                            @else
-                                                <span class="block text-xs text-gray-500">GRATIS</span>
-                                            @endif
-                                        </div>
-                                    </label>
+                            <label
+                                for="template-{{ $template->id }}"
+                                class="relative border rounded-lg cursor-pointer flex flex-col h-full
+                                    border-gray-300 peer-checked:border-purple-600
+                                    peer-checked:ring-2 peer-checked:ring-purple-500 focus:outline-none"
+                            >
+                                <div class="h-32 bg-gray-100 rounded-t-lg flex items-center justify-center">
+                                <span class="text-gray-400 text-xs">Vista Previa</span>
                                 </div>
-                            @empty
-                                <p class="text-sm text-red-600 col-span-full">
-                                    No se encontraron plantillas. (Verifica la base de datos).
-                                </p>
-                            @endforelse
+                                <div class="p-2 text-center flex-grow flex flex-col justify-center">
+                                <span class="text-sm font-medium text-gray-900">{{ $template->name }}</span>
+                                @if($template->is_premium)
+                                    <span class="block text-xs text-purple-600 font-bold">PREMIUM</span>
+                                @else
+                                    <span class="block text-xs text-gray-500">GRATIS</span>
+                                @endif
+                                </div>
+                            </label>
+                            </div>
+                        @empty
+                            <p class="text-sm text-red-600 col-span-full">No se encontraron plantillas. (Verifica la base de datos).</p>
+                        @endforelse
                         </div>
 
-                        @error('template_id')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-
+                    @error('template_id') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
 
                 <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -375,7 +366,6 @@
             </div>
         </div>
     </form>
-
     <div class="mt-8 bg-white p-6 md:p-8 rounded-2xl shadow-md border border-gray-100">
         <fieldset>
             <legend class="text-xl font-semibold text-gray-900">Galería de Fotos</legend>
@@ -414,7 +404,6 @@
             </div>
         </fieldset>
     </div>
-
     <div class="mt-8 bg-white p-6 md:p-8 rounded-2xl shadow-md border border-gray-100">
         <fieldset>
             <legend class="text-xl font-semibold text-gray-900">Itinerario</legend>
@@ -463,4 +452,4 @@
             </div>
         </fieldset>
     </div>
-@endsection
+    @endsection

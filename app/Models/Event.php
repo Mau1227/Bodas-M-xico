@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class Event extends Model
 {
@@ -72,6 +73,28 @@ class Event extends Model
             return $this->host_names ?: $this->display_title;
         });
     }
+
+    public function mainDateTime(): Carbon
+{
+    $rawDate  = (string) $this->wedding_date;
+    $onlyDate = substr($rawDate, 0, 10);
+
+    try {
+        $baseDate = Carbon::createFromFormat('Y-m-d', $onlyDate);
+    } catch (\Exception $e) {
+        $baseDate = Carbon::today();
+    }
+
+    if (!empty($this->ceremony_time)) {
+        return $baseDate->copy()->setTimeFromTimeString($this->ceremony_time);
+    }
+
+    if (!empty($this->reception_time)) {
+        return $baseDate->copy()->setTimeFromTimeString($this->reception_time);
+    }
+
+    return $baseDate->startOfDay();
+}
 
     protected $casts = [
     'wedding_date' => 'date',

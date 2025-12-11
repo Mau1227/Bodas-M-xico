@@ -1,17 +1,53 @@
 @php
-  // --- Obtenemos y formateamos todas las fechas y horas con Carbon (el sistema de fechas de Laravel) ---
-  $fecha_evento = \Carbon\Carbon::parse($event->wedding_date . ' ' . $event->ceremony_time);
-  $fecha_completa = $fecha_evento->locale('es')->isoFormat('dddd, DD [de] MMMM [de] YYYY');
-  $hora_evento_formato = $fecha_evento->format('H:i');
-  $dia_numero = $fecha_evento->format('d');
-  
-  // --- Procesamos los campos de texto de "padres" (de TEXT a array) ---
-  $padres_novia = $event->bride_parents ? explode("\n", trim($event->bride_parents)) : [];
-  $padres_novio = $event->groom_parents ? explode("\n", trim($event->groom_parents)) : [];
+    use Carbon\Carbon;
 
-  // --- Procesamos las frases (de TEXT a array) ---
-  $frases_novia = $event->bride_story ? explode("\n", trim($event->bride_story)) : ['Contigo encontré mi lugar en el mundo.'];
-  $frases_novio = $event->groom_story ? explode("\n", trim($event->groom_story)) : ['Eres mi presente y mi futuro.'];
+    // --- Normalizamos la fecha del evento solo a Y-m-d, ignorando cualquier hora rara ---
+    $rawDate  = (string) $event->wedding_date; // '2026-02-14' o '2026-02-14 00:00:00'
+    $onlyDate = substr($rawDate, 0, 10);       // '2026-02-14'
+
+    try {
+        $fecha_evento = Carbon::createFromFormat('Y-m-d', $onlyDate);
+    } catch (\Exception $e) {
+        $fecha_evento = Carbon::today();
+    }
+
+    // --- Fecha+hora completa para JS (contador + .ics) ---
+    if (!empty($event->ceremony_time)) {
+        $fecha_evento_datetime = Carbon::parse($onlyDate.' '.$event->ceremony_time);
+    } elseif (!empty($event->reception_time)) {
+        $fecha_evento_datetime = Carbon::parse($onlyDate.' '.$event->reception_time);
+    } else {
+        $fecha_evento_datetime = Carbon::parse($onlyDate.' 00:00:00');
+    }
+    $fechaEventoJs = $fecha_evento_datetime->timestamp * 1000; // milisegundos
+
+    // Formato completo en español (para usar en textos)
+    $fecha_completa = $fecha_evento->locale('es')->isoFormat('dddd, DD [de] MMMM [de] YYYY');
+    $dia_numero     = $fecha_evento->format('d');
+
+    // --- Hora del evento: preferimos ceremonia, si no recepción ---
+    $hora_evento_formato = null;
+    if (!empty($event->ceremony_time)) {
+        try {
+            $hora_evento_formato = Carbon::parse($event->ceremony_time)->format('H:i');
+        } catch (\Exception $e) {
+            $hora_evento_formato = $event->ceremony_time;
+        }
+    } elseif (!empty($event->reception_time)) {
+        try {
+            $hora_evento_formato = Carbon::parse($event->reception_time)->format('H:i');
+        } catch (\Exception $e) {
+            $hora_evento_formato = $event->reception_time;
+        }
+    }
+
+    // --- Procesamos los campos de texto de "padres" (de TEXT a array) ---
+    $padres_novia = $event->bride_parents ? explode("\n", trim($event->bride_parents)) : [];
+    $padres_novio = $event->groom_parents ? explode("\n", trim($event->groom_parents)) : [];
+
+    // --- Procesamos las frases (de TEXT a array) ---
+    $frases_novia = $event->bride_story ? explode("\n", trim($event->bride_story)) : ['Contigo encontré mi lugar en el mundo.'];
+    $frases_novio = $event->groom_story ? explode("\n", trim($event->groom_story)) : ['Eres mi presente y mi futuro.'];
 @endphp
 
 @php
@@ -24,39 +60,46 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Boda de {{ $event->bride_name }} & {{ $event->groom_name }}</title>
-<meta name="description" content="Te invitamos a celebrar nuestra boda...">
-<meta property="og:title" content="Boda de {{ $event->bride_name }} & {{ $event->groom_name }}">
-<meta property="og:description" content="{{ $event->welcome_message }}">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Lato:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@300;400;500;600&display=swap');
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  /* === ¡Colores Dinámicos! === */
-  --sage: {{ $event->primary_color }};
-  --mint: {{ $event->secondary_color }};
-  --gold:#A68B5B;
-  --taupe:#B0A99F;
-  --cream:#FAF9F6;
-  --dark:#3A3A3A;
-  --white:#FFFFFF;
+  --gold: {{ $event->primary_color }};
+  --dark: {{ $event->secondary_color }};
+  --black: #1a1a1a;
+  --cream: #f8f6f0;
+  --white: #ffffff;
+  --gold-light: #d4af37;
 }
 html{scroll-behavior:smooth}
-body{font-family:'Lato',sans-serif;color:var(--dark);background:var(--cream);line-height:1.8;overflow-x:hidden}
+body{
+  font-family:'Montserrat',sans-serif;
+  color:var(--black);
+  background:var(--black);
+  line-height:1.7;
+  overflow-x:hidden;
+}
 body.modal-open{overflow:hidden}
-h1,h2,h3,h4{font-family:'Playfair Display',serif;font-weight:600;line-height:1.3;letter-spacing:1px}
+h1,h2,h3,h4{
+  font-family:'Cinzel',serif;
+  font-weight:700;
+  line-height:1.2;
+  letter-spacing:3px;
+  text-transform:uppercase;
+}
 img{max-width:100%;height:auto;display:block}
 button{cursor:pointer;font-family:inherit;border:none}
-a{color:var(--sage);text-decoration:none;transition:color 0.3s}
-a:hover,a:focus{color:var(--gold)}
+a{color:var(--gold);text-decoration:none;transition:color 0.3s}
+a:hover{color:var(--gold-light)}
 .container{max-width:1200px;margin:0 auto;padding:0 24px}
-.section{padding:120px 0;position:relative}
-@media(max-width:768px){.section{padding:80px 0}}
+.section{padding:100px 0;position:relative;background:var(--cream)}
+@media(max-width:768px){.section{padding:60px 0}}
 
-/* Control de música */
+/* Música */
 .music-control{
   position:fixed;
   left:30px;
@@ -64,58 +107,103 @@ a:hover,a:focus{color:var(--gold)}
   z-index:9998;
   width:60px;
   height:60px;
-  border-radius:50%;
-  background:linear-gradient(135deg,var(--sage),var(--mint));
-  border:3px solid var(--white);
-  box-shadow:0 8px 30px rgba(125,155,123,0.4);
+  border-radius:0;
+  background:var(--gold);
+  border:2px solid var(--black);
+  box-shadow:0 4px 20px rgba(212,175,55,0.4);
   display:flex;
   align-items:center;
   justify-content:center;
   cursor:pointer;
-  transition:all 0.4s;
-  animation:pulse 2s ease-in-out infinite;
+  transition:all 0.3s;
 }
 .music-control:hover{
+  background:var(--gold-light);
   transform:scale(1.1);
-  box-shadow:0 12px 40px rgba(125,155,123,0.6);
 }
-.music-control svg{
-  width:28px;
-  height:28px;
-  fill:var(--white);
-}
-.music-control.muted{
-  background:linear-gradient(135deg,var(--taupe),#8B8B8B);
-  animation:none;
-}
-#youtube-player{
-  display:none;
-}
+.music-control svg{width:28px;height:28px;fill:var(--black)}
+.music-control.muted{background:var(--dark);opacity:0.7}
+#youtube-player{display:none}
 
-/* Animaciones scroll */
-.fade-in{opacity:0;transform:translateY(40px);transition:opacity 0.8s ease,transform 0.8s ease}
+/* Animaciones */
+.fade-in{opacity:0;transform:translateY(40px);transition:opacity 0.8s,transform 0.8s}
 .fade-in.visible{opacity:1;transform:translateY(0)}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-20px)}}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 
-/* Modal inicial */
-.modal{position:fixed;inset:0;background:rgba(58,58,58,0.95);display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;visibility:hidden;transition:opacity 0.5s,visibility 0.5s;backdrop-filter:blur(5px)}
+/* Modal */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(26,26,26,0.97);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity 0.5s,visibility 0.5s;
+}
 .modal.active{opacity:1;visibility:visible}
-.modal-content{background:var(--white);padding:70px 50px;border-radius:25px;max-width:600px;width:90%;text-align:center;box-shadow:0 25px 80px rgba(0,0,0,0.4);position:relative;border:4px solid var(--gold);animation:modalEntry 0.6s ease}
-@keyframes modalEntry{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}
-.modal-content svg{width:160px;height:160px;margin:0 auto 40px;animation:float 3s ease-in-out infinite}
-.modal-content h2{font-size:2.6rem;margin-bottom:20px;color:var(--sage);font-style:italic;letter-spacing:2px}
-.modal-content p{margin-bottom:40px;color:var(--dark);font-size:1.25rem;font-weight:300;line-height:1.8}
+.modal-content{
+  background:var(--cream);
+  padding:60px;
+  max-width:600px;
+  width:90%;
+  text-align:center;
+  box-shadow:0 0 80px rgba(212,175,55,0.3);
+  border:3px solid var(--gold);
+  position:relative;
+}
+.modal-content::before{
+  content:'';
+  position:absolute;
+  inset:-10px;
+  border:1px solid var(--gold);
+  opacity:0.5;
+}
+.modal-content h2{
+  font-size:2.5rem;
+  margin-bottom:25px;
+  color:var(--black);
+  letter-spacing:4px;
+}
+.modal-content p{
+  margin-bottom:40px;
+  color:var(--dark);
+  font-size:1.1rem;
+  line-height:1.8;
+}
 
 /* Botones */
-.btn{display:inline-block;padding:18px 45px;background:linear-gradient(135deg,var(--sage),var(--mint));color:var(--white);border-radius:50px;font-size:1.05rem;font-weight:600;transition:all 0.4s;box-shadow:0 8px 25px rgba(125,155,123,0.3);position:relative;overflow:hidden;text-transform:uppercase;letter-spacing:2.5px}
-.btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--mint),var(--sage));opacity:0;transition:opacity 0.4s}
-.btn:hover::before,.btn:focus::before{opacity:1}
+.btn{
+  display:inline-block;
+  padding:18px 50px;
+  background:var(--gold);
+  color:var(--black);
+  font-size:0.9rem;
+  font-weight:600;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  transition:all 0.3s;
+  border:2px solid var(--gold);
+  position:relative;
+  overflow:hidden;
+}
+.btn::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:var(--black);
+  transform:scaleX(0);
+  transform-origin:left;
+  transition:transform 0.4s;
+  z-index:0;
+}
+.btn:hover::before{transform:scaleX(1)}
 .btn span{position:relative;z-index:1}
-.btn:hover,.btn:focus{transform:translateY(-3px);box-shadow:0 12px 35px rgba(125,155,123,0.4);text-decoration:none}
-.btn:focus{outline:3px solid var(--gold);outline-offset:4px}
-.btn-secondary{background:linear-gradient(135deg,var(--gold),#C9A66B);box-shadow:0 8px 25px rgba(166,139,91,0.3)}
-.btn-secondary::before{background:linear-gradient(135deg,#C9A66B,var(--gold))}
+.btn:hover{
+  color:var(--gold);
+  box-shadow:0 8px 30px rgba(212,175,55,0.4);
+}
 
 /* Hero */
 .hero{
@@ -125,192 +213,457 @@ a:hover,a:focus{color:var(--gold)}
   justify-content:center;
   text-align:center;
   position:relative;
-  /* Usamos la 'cover_photo_url' que subió el usuario */
-  background: linear-gradient(rgba(125,155,123,0.25),rgba(168,202,173,0.35)),
-              /* IMPORTANTE: 
-                Asegúrate de haber corrido 'php artisan storage:link'
-                para que esta imagen sea visible.
-              */
+  background:linear-gradient(rgba(26,26,26,0.5),rgba(26,26,26,0.7)),
               url('{{ $event->cover_photo_url ? asset('storage/' . $event->cover_photo_url) : 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1600' }}') center/cover fixed;
   color:var(--white);
-  overflow:hidden;
-}.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at center,transparent 0%,rgba(58,58,58,0.5) 100%)}
-.hero-content{position:relative;z-index:2;padding:50px 30px;animation:fadeInUp 1.2s ease}
-@keyframes fadeInUp{from{opacity:0;transform:translateY(50px)}to{opacity:1;transform:translateY(0)}}
-.hero h1{font-size:clamp(3.5rem,11vw,8rem);margin-bottom:30px;text-shadow:4px 4px 15px rgba(0,0,0,0.6);font-style:italic;font-weight:700;letter-spacing:6px;line-height:1.1}
-.hero h1::after{content:'';display:block;width:250px;height:3px;background:linear-gradient(to right,transparent,var(--gold),transparent);margin:30px auto;box-shadow:0 0 15px var(--gold)}
-.hero p{font-size:clamp(1.3rem,3.5vw,1.8rem);margin-bottom:50px;font-weight:300;letter-spacing:2.5px;animation:fadeInUp 1.4s ease;font-family:'Cormorant Garamond',serif;font-style:italic}
-.hero .btn{animation:fadeInUp 1.6s ease;font-size:1.1rem;padding:20px 50px}
-.hero-decoration{position:absolute;opacity:0.12;pointer-events:none}
-.hero-leaf{width:120px;height:120px;fill:var(--white);animation:float 6s ease-in-out infinite}
-.hero-leaf.left{top:20%;left:10%;animation-delay:-2s}
-.hero-leaf.right{top:60%;right:15%;animation-delay:-4s}
-
-/* Contador */
-.countdown-section{background:linear-gradient(to bottom,var(--white),var(--cream));text-align:center}
-.section-title{font-size:clamp(3rem,7vw,4.5rem);text-align:center;margin-bottom:70px;color:var(--sage);font-style:italic;position:relative;display:inline-block;left:50%;transform:translateX(-50%)}
-.section-title::after{content:'';position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);width:100px;height:4px;background:linear-gradient(to right,transparent,var(--gold),transparent)}
-.countdown{display:flex;gap:35px;justify-content:center;flex-wrap:wrap;margin-top:50px}
-.countdown-item{background:var(--white);padding:40px 35px;border-radius:25px;min-width:140px;box-shadow:0 12px 50px rgba(0,0,0,0.1);border:3px solid var(--mint);transition:all 0.4s}
-.countdown-item:hover{transform:translateY(-10px) scale(1.08);box-shadow:0 18px 60px rgba(125,155,123,0.25);border-color:var(--sage)}
-.countdown-item span{display:block;font-size:3.5rem;font-weight:700;color:var(--sage);font-family:'Playfair Display',serif}
-.countdown-item small{font-size:0.95rem;text-transform:uppercase;letter-spacing:2.5px;color:var(--gold);font-weight:600;margin-top:8px;display:block}
-
-
-.save-date-section .section-title,
-.countdown-section .section-title{
-  display:block;
-  margin:0 auto 70px;
-  left:auto;
-  transform:none;
+}
+.hero::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  border:20px solid rgba(212,175,55,0.2);
+  pointer-events:none;
+}
+.hero-content{
+  position:relative;
+  z-index:2;
+  padding:50px 30px;
+}
+.hero h1{
+  font-size:clamp(3rem,10vw,7rem);
+  margin-bottom:40px;
+  text-shadow:3px 3px 10px rgba(0,0,0,0.8);
+  letter-spacing:8px;
+  font-weight:900;
+}
+.hero h1::before,
+.hero h1::after{
+  content:'◆';
+  display:inline-block;
+  margin:0 30px;
+  color:var(--gold);
+  font-size:0.4em;
+}
+.hero p{
+  font-size:1.4rem;
+  margin-bottom:50px;
+  font-weight:300;
+  letter-spacing:4px;
+  font-family:'Crimson Text',serif;
+  font-style:italic;
 }
 
+/* Sección título */
+.section-title{
+  font-size:clamp(2.5rem,6vw,4rem);
+  text-align:center;
+  margin-bottom:80px;
+  color:var(--black);
+  position:relative;
+  display:inline-block;
+  left:50%;
+  transform:translateX(-50%);
+}
+.section-title::before,
+.section-title::after{
+  content:'';
+  position:absolute;
+  top:50%;
+  width:100px;
+  height:2px;
+  background:var(--gold);
+}
+.section-title::before{right:calc(100% + 30px)}
+.section-title::after{left:calc(100% + 30px)}
+
+/* Contador */
+.countdown-section{
+  background:var(--black);
+  color:var(--white);
+}
+.countdown-section .section-title{
+  color:var(--gold);
+}
+.countdown-section .section-title::before,
+.countdown-section .section-title::after{
+  background:var(--gold);
+}
+.countdown{
+  display:flex;
+  gap:40px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+.countdown-item{
+  background:transparent;
+  padding:40px;
+  border:2px solid var(--gold);
+  min-width:140px;
+  position:relative;
+}
+.countdown-item::before{
+  content:'';
+  position:absolute;
+  inset:-10px;
+  border:1px solid var(--gold);
+  opacity:0.3;
+}
+.countdown-item span{
+  display:block;
+  font-size:4rem;
+  font-weight:700;
+  color:var(--gold);
+  font-family:'Cinzel',serif;
+}
+.countdown-item small{
+  font-size:0.85rem;
+  text-transform:uppercase;
+  letter-spacing:3px;
+  color:var(--white);
+  font-weight:600;
+  margin-top:10px;
+  display:block;
+}
 
 /* Grid */
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:70px;align-items:center}
+.grid-2{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:60px;
+  align-items:center;
+}
 
 /* Cards */
-.card{background:var(--white);padding:60px 50px;border-radius:25px;box-shadow:0 15px 50px rgba(0,0,0,0.1);transition:all 0.5s;border:3px solid transparent;position:relative;overflow:hidden}
-.card::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(168,202,173,0.15) 0%,transparent 70%);transform:scale(0);transition:transform 0.6s; pointer-events:none;z-index: 0;}
-.card:hover::before{transform:scale(1)}
-.card:hover{transform:translateY(-12px);border-color:var(--mint);box-shadow:0 25px 70px rgba(125,155,123,0.2)}
+.card{
+  background:var(--white);
+  padding:50px;
+  border:2px solid var(--gold);
+  position:relative;
+  transition:all 0.4s;
+}
+.card::before{
+  content:'';
+  position:absolute;
+  inset:-8px;
+  border:1px solid var(--gold);
+  opacity:0;
+  transition:opacity 0.4s;
+}
+.card:hover::before{opacity:0.5}
+.card:hover{
+  transform:translateY(-10px);
+  box-shadow:0 20px 60px rgba(0,0,0,0.2);
+}
 
-/* Invitación */
-.invitation-text{font-size:1.55rem;line-height:2.1;color:var(--dark);font-weight:300;font-family:'Cormorant Garamond',serif;font-style:italic;text-align:justify}
-.invitation-img{border-radius:25px;box-shadow:0 25px 70px rgba(0,0,0,0.18);border:6px solid var(--white);transition:transform 0.5s;width:100%;height:auto;object-fit:cover}
-.invitation-img:hover{transform:scale(1.06) rotate(2deg)}
-.pases-info{margin-top:35px;font-size:1.4rem;color:var(--gold);font-weight:600;padding:25px;background:linear-gradient(135deg,rgba(168,202,173,0.15),rgba(166,139,91,0.15));border-radius:18px;border-left:5px solid var(--gold);text-align:center;letter-spacing:1px}
+/* Texto */
+.invitation-text{
+  font-size:1.4rem;
+  line-height:2;
+  color:var(--black);
+  font-family:'Crimson Text',serif;
+  text-align:justify;
+}
+.invitation-img{
+  border:5px solid var(--gold);
+  box-shadow:0 20px 60px rgba(0,0,0,0.3);
+}
+.pases-info{
+  margin-top:30px;
+  font-size:1.3rem;
+  color:var(--gold);
+  font-weight:600;
+  padding:20px;
+  border:2px solid var(--gold);
+  text-align:center;
+  letter-spacing:2px;
+  background:rgba(212,175,55,0.05);
+}
 
 /* Padres */
-.parents-section{background:linear-gradient(to bottom,var(--cream),var(--white))}
-.parent-card h3{color:var(--sage);margin-bottom:35px;text-align:center;font-size:2.3rem;font-style:italic;letter-spacing:1px}
-.parent-card ul{list-style:none;text-align:center;font-size:1.35rem;line-height:2.8;font-family:'Cormorant Garamond',serif}
-.parent-card ul li{position:relative;padding:12px 0;transition:color 0.3s;font-weight:400}
-.parent-card ul li:hover{color:var(--sage)}
-.parent-card ul li::before{content:'❦';position:absolute;left:50%;transform:translateX(-50%) translateY(-100%);opacity:0;transition:all 0.3s;color:var(--gold);font-size:1.8rem}
-.parent-card ul li:hover::before{opacity:1;transform:translateX(-50%) translateY(-150%)}
+.parent-card h3{
+  color:var(--black);
+  margin-bottom:30px;
+  text-align:center;
+  font-size:2rem;
+  letter-spacing:3px;
+}
+.parent-card ul{
+  list-style:none;
+  text-align:center;
+  font-size:1.2rem;
+  line-height:2.5;
+  font-family:'Crimson Text',serif;
+}
 
 /* Carrusel */
-.carousel{position:relative;max-width:800px;margin:0 auto;border-radius:30px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.25);border:8px solid var(--white)}
-.carousel-inner{display:flex;transition:transform 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)}
-.carousel-item{min-width:100%;position:relative}
-.carousel-item img{width:100%;height:550px;object-fit:cover}
-.carousel-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.95);width:55px;height:55px;border-radius:50%;font-size:2.2rem;z-index:2;transition:all 0.3s;color:var(--sage);display:flex;align-items:center;justify-content:center;box-shadow:0 5px 20px rgba(0,0,0,0.25);font-weight:600}
-.carousel-btn:hover{background:var(--white);transform:translateY(-50%) scale(1.2);box-shadow:0 10px 35px rgba(125,155,123,0.35)}
-.carousel-btn.prev{left:25px}
-.carousel-btn.next{right:25px}
-.frases{text-align:center;margin-top:60px;padding:50px 40px;background:var(--white);border-radius:25px;box-shadow:0 12px 50px rgba(0,0,0,0.1);min-height:180px;border-left:6px solid var(--gold);position:relative}
-.frases::before{content:'"';position:absolute;top:15px;left:35px;font-size:6rem;color:var(--mint);opacity:0.35;font-family:Georgia,serif;line-height:1}
-.frases p{font-style:italic;font-size:1.5rem;color:var(--sage);font-family:'Cormorant Garamond',serif;font-weight:400;line-height:2;padding:0 40px}
-.frases cite{display:block;margin-top:25px;font-size:1.25rem;color:var(--gold);font-style:normal;font-weight:600;letter-spacing:1.5px}
+.carousel{
+  position:relative;
+  max-width:900px;
+  margin:0 auto;
+  border:5px solid var(--gold);
+  box-shadow:0 30px 80px rgba(0,0,0,0.4);
+}
+.carousel-inner{
+  display:flex;
+  transition:transform 0.7s ease;
+}
+.carousel-item{min-width:100%}
+.carousel-item img{
+  width:100%;
+  height:600px;
+  object-fit:cover;
+}
+.carousel-btn{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  background:var(--gold);
+  width:60px;
+  height:60px;
+  font-size:2.5rem;
+  z-index:2;
+  transition:all 0.3s;
+  color:var(--black);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:2px solid var(--black);
+  font-weight:700;
+}
+.carousel-btn:hover{
+  background:var(--black);
+  color:var(--gold);
+}
+.carousel-btn.prev{left:0}
+.carousel-btn.next{right:0}
 
-/* Save the date */
-.save-date-section{background:linear-gradient(135deg,var(--sage),var(--mint));color:var(--white);text-align:center}
-.save-date-section .section-title{color:var(--white)}
-.save-date-section p{font-size:1.6rem;margin-bottom:35px;font-family:'Cormorant Garamond',serif;font-style:italic;letter-spacing:1px}
-.calendar-icon{width:90px;height:90px;margin:0 auto 40px;animation:pulse 2s ease-in-out infinite}
+.frases{
+  text-align:center;
+  margin-top:50px;
+  padding:40px;
+  background:var(--black);
+  color:var(--gold);
+  border:2px solid var(--gold);
+  min-height:150px;
+  position:relative;
+}
+.frases p{
+  font-style:italic;
+  font-size:1.4rem;
+  font-family:'Crimson Text',serif;
+  line-height:2;
+}
+.frases cite{
+  display:block;
+  margin-top:20px;
+  font-size:1.1rem;
+  font-style:normal;
+  font-weight:600;
+  letter-spacing:2px;
+  text-transform:uppercase;
+}
 
-/* Lugar */
-.venue-info h3{color:var(--sage);font-size:2.8rem;margin-bottom:25px;font-style:italic;letter-spacing:1px}
-.venue-info p{font-size:1.3rem;margin-bottom:25px;line-height:2}
-.venue-img{margin-top:35px;border-radius:25px;box-shadow:0 25px 70px rgba(0,0,0,0.18);border:6px solid var(--white);width:100%;height:auto;object-fit:cover}
-.map-container{border-radius:25px;overflow:hidden;box-shadow:0 25px 70px rgba(0,0,0,0.18);height:500px;border:6px solid var(--white)}
+/* Save date */
+.save-date-section{
+  background:var(--gold);
+  color:var(--black);
+}
+.save-date-section .section-title{color:var(--black)}
+.save-date-section .section-title::before,
+.save-date-section .section-title::after{background:var(--black)}
+.save-date-section p{
+  font-size:1.5rem;
+  margin-bottom:40px;
+  font-family:'Crimson Text',serif;
+  letter-spacing:1px;
+}
+
+/* Venue */
+.venue-info h3{
+  color:var(--black);
+  font-size:2.5rem;
+  margin-bottom:25px;
+  letter-spacing:3px;
+}
+.venue-info p{
+  font-size:1.2rem;
+  margin-bottom:20px;
+  line-height:1.9;
+}
+.venue-img{
+  margin-top:30px;
+  border:5px solid var(--gold);
+  box-shadow:0 20px 60px rgba(0,0,0,0.3);
+}
+.map-container{
+  border:5px solid var(--gold);
+  height:500px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.3);
+}
 .map-container iframe{width:100%;height:100%;border:0}
 
-/* Código vestimenta MEJORADO */
-.dress-code-section{background:linear-gradient(to bottom,var(--white),var(--cream))}
-.dress-card{text-align:center;display:flex;flex-direction:column;align-items:center}
+/* Vestimenta */
+.dress-card{text-align:center}
 .dress-image-container{
   width:100%;
   max-width:400px;
-  height:450px;
-  border-radius:25px;
+  height:500px;
+  border:5px solid var(--gold);
   overflow:hidden;
-  box-shadow:0 20px 60px rgba(0,0,0,0.15);
-  border:6px solid var(--white);
   margin:0 auto 30px;
-  transition:all 0.5s;
-}
-.dress-card:hover .dress-image-container{
-  transform:scale(1.05);
-  box-shadow:0 25px 70px rgba(125,155,123,0.25);
+  box-shadow:0 20px 60px rgba(0,0,0,0.3);
 }
 .dress-image-container img{
   width:100%;
   height:100%;
   object-fit:cover;
-  transition:transform 0.5s;
 }
-.dress-card:hover .dress-image-container img{
-  transform:scale(1.1);
+.dress-card h3{
+  color:var(--black);
+  margin-bottom:20px;
+  font-size:2rem;
+  letter-spacing:3px;
 }
-.dress-card h3{color:var(--sage);margin-bottom:20px;font-size:2.3rem;font-style:italic;letter-spacing:1px}
-.dress-card h4{color:var(--gold);margin-bottom:15px;font-size:1.5rem;font-weight:600;letter-spacing:1px}
-.dress-card p{font-size:1.2rem;line-height:2;color:var(--dark);font-weight:300;max-width:450px;margin:0 auto}
-.dress-note{text-align:center;margin-top:60px;font-size:1.15rem;opacity:0.8;font-style:italic;padding:25px 30px;background:rgba(166,139,91,0.12);border-radius:18px;max-width:700px;margin-left:auto;margin-right:auto;border-left:4px solid var(--gold)}
-
-/* Mesa regalos */
-.gifts-section{background:linear-gradient(135deg,var(--mint),var(--sage));color:var(--white);text-align:center}
-.gifts-section .section-title{color:var(--white)}
-.gift-img{max-width:500px;margin:0 auto 50px;border-radius:25px;box-shadow:0 30px 80px rgba(0,0,0,0.35);border:8px solid var(--white)}
-.gifts-section p{font-size:1.45rem;margin-bottom:45px;font-family:'Cormorant Garamond',serif;font-style:italic;max-width:750px;margin-left:auto;margin-right:auto;line-height:2}
+.dress-card p{
+  font-size:1.1rem;
+  line-height:1.9;
+  color:var(--dark);
+  max-width:450px;
+  margin:0 auto;
+}
 
 /* Timeline */
-.timeline-section{background:var(--white)}
-.timeline{position:relative;padding-left:90px;max-width:800px;margin:0 auto}
-.timeline::before{content:'';position:absolute;left:35px;top:0;bottom:0;width:4px;background:linear-gradient(to bottom,var(--mint),var(--sage),var(--gold))}
-.timeline-item{position:relative;margin-bottom:70px;padding:40px;background:var(--cream);border-radius:25px;box-shadow:0 12px 50px rgba(0,0,0,0.1);transition:all 0.4s;border:3px solid transparent}
-.timeline-item:hover{transform:translateX(20px);border-color:var(--sage);box-shadow:0 18px 60px rgba(125,155,123,0.18)}
-.timeline-item::before{content:'';position:absolute;left:-67px;top:42px;width:28px;height:28px;border-radius:50%;background:var(--gold);border:6px solid var(--white);box-shadow:0 0 0 4px var(--sage),0 6px 18px rgba(0,0,0,0.25);transition:all 0.4s}
-.timeline-item:hover::before{transform:scale(1.35);box-shadow:0 0 0 6px var(--sage),0 10px 30px rgba(166,139,91,0.45)}
-.timeline-item h3{color:var(--sage);margin-bottom:15px;font-size:1.8rem;font-style:italic;display:flex;align-items:center;gap:18px;letter-spacing:1px}
-.timeline-item p{color:var(--dark);font-size:1.15rem;line-height:2;font-weight:300}
-.timeline-icon{width:55px;height:55px;fill:var(--sage);transition:fill 0.3s;flex-shrink:0}
-.timeline-item:hover .timeline-icon{fill:var(--gold)}
-
-/* RSVP */
-.rsvp-section{background:linear-gradient(to bottom,var(--cream),var(--white));text-align:center}
-.rsvp-section p{font-size:1.45rem;margin-bottom:45px;font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--sage);line-height:1.9}
-.form-group{margin-bottom:30px;text-align:left}
-.form-group label{display:block;margin-bottom:12px;font-weight:600;color:var(--sage);font-size:1.15rem;letter-spacing:0.5px}
-.form-group input,.form-group textarea,.form-group select{width:100%;padding:18px 22px;border:3px solid var(--mint);border-radius:15px;font-size:1.05rem;font-family:inherit;transition:all 0.3s;background:var(--white)}
-.form-group input:focus,.form-group textarea:focus,.form-group select:focus{outline:none;border-color:var(--sage);box-shadow:0 6px 25px rgba(125,155,123,0.12)}
-.form-group textarea{resize:vertical;min-height:140px}
-.honeypot{position:absolute;left:-9999px;opacity:0}
-.success-message{background:linear-gradient(135deg,rgba(168,202,173,0.25),rgba(125,155,123,0.25));padding:40px;border-radius:20px;border-left:6px solid var(--sage);margin-top:35px}
-.success-message h3{color:var(--sage);margin-bottom:18px;font-size:2rem;letter-spacing:1px}
-
-/* Footer */
-footer{background:linear-gradient(135deg,var(--sage),var(--mint));color:var(--white);padding:70px 0;text-align:center}
-footer p{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-style:italic;letter-spacing:1.5px}
-
-/* Decoraciones florales */
-.floral-decoration{position:absolute;opacity:0.06;pointer-events:none;width:250px;height:250px}
-.floral-left{top:10%;left:-60px;transform:rotate(-15deg)}
-.floral-right{bottom:10%;right:-60px;transform:rotate(15deg)}
-
-@media(max-width:768px){
-  .hero h1{font-size:2.8rem;letter-spacing:3px}
-  .section-title{font-size:2.3rem}
-  .countdown{gap:18px}
-  .countdown-item{min-width:90px;padding:25px 18px}
-  .countdown-item span{font-size:2.3rem}
-  .timeline{padding-left:60px}
-  .timeline::before{left:18px}
-  .timeline-item::before{left:-52px}
-  .carousel-item img{height:400px}
-  .grid-2{gap:50px}
-  .dress-image-container{height:400px;max-width:100%}
-  .music-control{left:20px;bottom:20px;width:55px;height:55px}
-  .music-control svg{width:24px;height:24px}
-  .invitation-text{font-size:1.35rem;text-align:left}
-  .frases p{font-size:1.3rem;padding:0 20px}
+.timeline{
+  position:relative;
+  padding-left:80px;
+  max-width:900px;
+  margin:0 auto;
+}
+.timeline::before{
+  content:'';
+  position:absolute;
+  left:30px;
+  top:0;
+  bottom:0;
+  width:2px;
+  background:var(--gold);
+}
+.timeline-item{
+  position:relative;
+  margin-bottom:60px;
+  padding:35px;
+  background:var(--white);
+  border:2px solid var(--gold);
+  transition:all 0.3s;
+}
+.timeline-item:hover{
+  transform:translateX(15px);
+  box-shadow:0 15px 50px rgba(0,0,0,0.2);
+}
+.timeline-item::before{
+  content:'';
+  position:absolute;
+  left:-62px;
+  top:35px;
+  width:20px;
+  height:20px;
+  background:var(--gold);
+  border:3px solid var(--black);
+  transform:rotate(45deg);
+}
+.timeline-item h3{
+  color:var(--black);
+  margin-bottom:10px;
+  font-size:1.5rem;
+  letter-spacing:2px;
+}
+.timeline-item p{
+  color:var(--dark);
+  font-size:1rem;
+  line-height:1.8;
 }
 
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+/* RSVP */
+.rsvp-section{text-align:center}
+.rsvp-section p{
+  font-size:1.3rem;
+  margin-bottom:40px;
+  font-family:'Crimson Text',serif;
+  color:var(--dark);
+}
+.form-group{margin-bottom:25px;text-align:left}
+.form-group label{
+  display:block;
+  margin-bottom:10px;
+  font-weight:600;
+  color:var(--black);
+  font-size:1rem;
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+.form-group input,
+.form-group textarea,
+.form-group select{
+  width:100%;
+  padding:15px 20px;
+  border:2px solid var(--gold);
+  font-size:1rem;
+  font-family:inherit;
+  transition:all 0.3s;
+  background:var(--white);
+}
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus{
+  outline:none;
+  border-color:var(--black);
+  box-shadow:0 0 20px rgba(212,175,55,0.3);
+}
+.success-message{
+  background:rgba(212,175,55,0.1);
+  padding:35px;
+  border:2px solid var(--gold);
+  margin-top:30px;
+}
+.success-message h3{
+  color:var(--black);
+  margin-bottom:15px;
+  font-size:1.8rem;
+  letter-spacing:2px;
+}
+
+/* Footer */
+footer{
+  background:var(--black);
+  color:var(--gold);
+  padding:60px 0;
+  text-align:center;
+  border-top:3px solid var(--gold);
+}
+footer p{
+  font-family:'Cinzel',serif;
+  font-size:1.2rem;
+  letter-spacing:3px;
+  text-transform:uppercase;
+}
+
+@media(max-width:768px){
+  .hero h1{font-size:2.5rem;letter-spacing:4px}
+  .hero h1::before,.hero h1::after{margin:0 15px}
+  .section-title{font-size:2rem}
+  .section-title::before,.section-title::after{width:50px}
+  .countdown{gap:20px}
+  .countdown-item{min-width:100px;padding:25px 20px}
+  .countdown-item span{font-size:2.5rem}
+  .carousel-item img{height:400px}
+  .timeline{padding-left:60px}
+  .timeline::before{left:15px}
+  .timeline-item::before{left:-47px}
+}
 </style>
 </head>
+<body class="modal-open">
+
 <body class="modal-open">
 
 <!-- Control de música -->
@@ -436,7 +789,7 @@ footer p{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-style:ita
         <!-- Bucle de la Galería de Fotos -->
         @forelse($event->eventPhotos as $photo)
         <div class="carousel-item">
-          <img src="{{ asset('storage/' . $photo->photo_url) }}" alt="Foto de la galería" loading="lazy" width="800" height="550">
+          <img src="{{ asset('public/uploads/' . $photo->photo_url) }}" alt="Foto de la galería" loading="lazy" width="800" height="550">
         </div>
         @empty
         <!-- Si no hay fotos en la galería, muestra la de portada -->
@@ -789,24 +1142,20 @@ footer p{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-style:ita
   </div>
 </section>
 
-
-
 <footer>
   <p>{{ $event->bride_name }} & {{ $event->groom_name }} • {{ $fecha_evento->format('Y') }}</p>
   <p style="margin-top:15px;font-size:1.15rem;opacity:0.95">Con amor y gratitud para nuestros seres queridos</p>
 </footer>
 
 <script>
-const fechaEvento = new Date('{{ $event->wedding_date }}T{{ $event->ceremony_time }}').getTime();
-const novia = '{{ $event->bride_name }}';
-const novio = '{{ $event->groom_name }}';
-const lugarNombre = '{{ $event->reception_venue_name }}';
-const youtubeVideoId = '{{ $event->music_url ?? '' }}'; // Usamos ?? '' por si está nulo
+const fechaEvento = {{ $fechaEventoJs }}; // milisegundos desde PHP/Carbon
+const novia       = @json($event->bride_name);
+const novio       = @json($event->groom_name);
+const lugarNombre = @json($event->reception_venue_name);
+const youtubeVideoId = @json($event->music_url ?? '');
 const frasesNovia = @json($frases_novia);
 const frasesNovio = @json($frases_novio);
-const totalFotos = {{ $event->eventPhotos->count() > 0 ? $event->eventPhotos->count() : ($event->cover_photo_url ? 1 : 0) }};
-
-
+const totalFotos  = {{ $event->eventPhotos->count() > 0 ? $event->eventPhotos->count() : ($event->cover_photo_url ? 1 : 0) }};
 
 // ===== MÚSICA DE FONDO CON YOUTUBE =====
 let player;
@@ -881,18 +1230,28 @@ document.addEventListener('keydown', (e) => {
 });
 setTimeout(() => btnEntrar.focus(), 100);
 
-// Contador
+// ===== CONTADOR =====
 function actualizarContador(){
-  const ahora = new Date().getTime();
+  const ahora = Date.now();
   const diferencia = fechaEvento - ahora;
-  if(diferencia <= 0){
-    document.getElementById('countdown').innerHTML = '<div class="countdown-item" style="min-width:auto;padding:40px 60px"><span style="font-size:3rem">¡Llegó el gran día! 🎉</span></div>';
+
+  if (isNaN(diferencia)) {
+    console.error('fechaEvento inválida:', fechaEvento);
     return;
   }
+
+  if(diferencia <= 0){
+    document.getElementById('countdown').innerHTML =
+      '<div class="countdown-item" style="min-width:auto;padding:40px 60px">' +
+      '<span style="font-size:3rem">¡Llegó el gran día! 🎉</span></div>';
+    return;
+  }
+
   const dias = Math.floor(diferencia / (1000*60*60*24));
   const horas = Math.floor((diferencia % (1000*60*60*24)) / (1000*60*60));
   const minutos = Math.floor((diferencia % (1000*60*60)) / (1000*60));
   const segundos = Math.floor((diferencia % (1000*60)) / 1000);
+
   document.getElementById('dias').textContent = dias;
   document.getElementById('horas').textContent = horas;
   document.getElementById('minutos').textContent = minutos;
@@ -901,7 +1260,7 @@ function actualizarContador(){
 actualizarContador();
 setInterval(actualizarContador, 1000);
 
-// Carrusel
+// ===== CARRUSEL =====
 let currentSlide = 0;
 const carouselInner = document.getElementById('carouselInner');
 const btnPrev = document.getElementById('btnPrev');
@@ -935,30 +1294,25 @@ setInterval(() => {
   actualizarCarrusel();
 }, 5000);
 
+// ===== BOTÓN AÑADIR AL CALENDARIO (.ICS) =====
 document.getElementById('btnCalendario').addEventListener('click', () => {
-  
   // Helper para formatear fecha a YYYYMMDDTHHmmSSZ (formato UTC para .ics)
   function formatICSDate(date) {
     const pad = (num) => (num < 10 ? '0' + num : num);
-    
     const year = date.getUTCFullYear();
-    const month = pad(date.getUTCMonth() + 1); // Meses son 0-indexados
+    const month = pad(date.getUTCMonth() + 1);
     const day = pad(date.getUTCDate());
     const hours = pad(date.getUTCHours());
     const minutes = pad(date.getUTCMinutes());
     const seconds = pad(date.getUTCSeconds());
-    
     return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
   }
 
-  // 'fechaEvento' es el timestamp de JS que definimos al inicio del script
   const fechaInicioJS = new Date(fechaEvento);
-  
-  // Asumimos una duración de 5 horas (5 * 60 * 60 * 1000 milisegundos)
-  const fechaFinJS = new Date(fechaEvento + (5 * 60 * 60 * 1000)); 
+  const fechaFinJS = new Date(fechaEvento + (5 * 60 * 60 * 1000)); // +5h
 
   const dtstart = formatICSDate(fechaInicioJS);
-  const dtend = formatICSDate(fechaFinJS);
+  const dtend   = formatICSDate(fechaFinJS);
   
   const evento = [
     'BEGIN:VCALENDAR',
@@ -967,7 +1321,6 @@ document.getElementById('btnCalendario').addEventListener('click', () => {
     'BEGIN:VEVENT',
     `DTSTART:${dtstart}`,
     `DTEND:${dtend}`,
-    // 'novia', 'novio' y 'lugarNombre' son las variables JS globales
     `SUMMARY:Boda de ${novia} y ${novio}`, 
     `LOCATION:${lugarNombre}`,
     'DESCRIPTION:¡No te pierdas nuestra boda!',
@@ -979,13 +1332,11 @@ document.getElementById('btnCalendario').addEventListener('click', () => {
   const blob = new Blob([evento], {type: 'text/calendar;charset=utf-8'});
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  
-  // Usamos las variables JS para el nombre del archivo
   link.download = `boda-${novia.toLowerCase()}-${novio.toLowerCase()}.ics`;
   link.click();
 });
 
-// RSVP
+// ===== RSVP =====
 const modalRsvp = document.getElementById('modalRsvp');
 const btnRsvp = document.getElementById('btnRsvp');
 const btnCerrarRsvp = document.getElementById('btnCerrarRsvp');
