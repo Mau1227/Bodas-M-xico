@@ -32,7 +32,6 @@
     </style>
 </head>
 
-{{-- 🔥 CAMBIO 1: Usamos h-screen y overflow-hidden en el body para bloquear el scroll general --}}
 <body class="h-screen overflow-hidden bg-[#f8f7ff]">
 
     {{-- Backdrop para el sidebar móvil (z-20 para estar debajo del sidebar pero encima del contenido) --}}
@@ -46,11 +45,6 @@
     <div class="flex h-screen overflow-hidden">
 
         {{-- SIDEBAR --}}
-        {{-- 🔥 CAMBIO 2: 
-             - En Móvil: fixed, z-30 (encima del backdrop).
-             - En Desktop: relative (parte del flex), hidden md:flex (para asegurar display).
-             - overflow-y-auto: Si el menú es muy largo, scrollea internamente.
-        --}}
         <aside
             id="sidebar"
             class="w-64 bg-white shadow-lg flex flex-col transition-transform duration-300 ease-in-out
@@ -180,11 +174,6 @@
             </div>
         </aside>
 
-        {{-- 🔥 CAMBIO 3: COLUMNA DE CONTENIDO 
-             flex-1: Toma el resto del ancho.
-             flex-col: Para poner Header arriba y Contenido abajo.
-             overflow-hidden: IMPORTANTE, para que esta columna no genere scroll en el eje Y del padre, sino adentro.
-        --}}
         <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
             
             <header class="bg-white shadow-sm border-b border-gray-200 z-10 relative">
@@ -223,14 +212,6 @@
                     </div>
                 </div>
             </header>
-
-            {{-- 🔥 CAMBIO 4: MAIN SCROLLEABLE 
-                 flex-1: Toma toda la altura sobrante bajo el header.
-                 overflow-y-auto: Aquí es donde ocurre el scroll de la página.
-                 bg-slate-50: Color de fondo general.
-                 p-4 md:p-8: Padding responsive.
-                 pb-20: Padding extra abajo para móviles, evita que el final choque con los bordes de pantallas curvas o barras de navegación de iOS.
-            --}}
             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-[#f8f7ff] p-4 md:p-8 pb-24">
                 {{-- Contenedor max-width centrado para que no se estire infinito en pantallas ultra-wide --}}
                 <div class="max-w-7xl mx-auto">

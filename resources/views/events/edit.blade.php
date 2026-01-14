@@ -207,60 +207,58 @@
 
             <fieldset class="border-t border-gray-200 pt-6">
                 <legend class="text-xl font-semibold text-gray-900">Diseño y Personalización</legend>
-                
+    
                 <div class="mt-4">
                     <label class="block text-sm font-medium text-gray-700">Selecciona una Plantilla</label>
-                    <div class="mt-4">
-                        <label class="block text-sm font-medium text-gray-700">Selecciona una Plantilla</label>
-                        <div class="mt-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            @forelse ($templates as $template)
-                                <div class="h-full">
-                                    <input
-                                        type="radio"
-                                        name="template_id"
-                                        id="template-{{ $template->id }}"
-                                        value="{{ $template->id }}"
-                                        class="hidden peer"
-                                        {{ old('template_id', $event->template_id) == $template->id ? 'checked' : '' }}
-                                    />
+                    <div class="mt-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                        @forelse ($templates as $template)
+                            <div class="h-full">
+                                <input
+                                    type="radio"
+                                    name="template_id"
+                                    id="template-{{ $template->id }}"
+                                    value="{{ $template->id }}"
+                                    class="hidden peer"
+                                    {{ old('template_id', $event->template_id) == $template->id ? 'checked' : '' }}
+                                />
 
-                                    <label
-                                        for="template-{{ $template->id }}"
-                                        class="relative border rounded-lg cursor-pointer flex flex-col h-full
-                                            border-gray-300 peer-checked:border-purple-600
-                                            peer-checked:ring-2 peer-checked:ring-purple-500 focus:outline-none"
-                                    >
-                                        {{-- Botón de vista previa --}}
-                                        <a href="{{ route('invitation.previewTemplate', ['slug' => $event->custom_url_slug, 'template' => $template->id]) }}"
-                                        target="_blank"
-                                        class="absolute top-2 right-2 text-[11px] px-2 py-1 rounded-full bg-white/80 text-purple-600 font-semibold shadow hover:bg-purple-50">
-                                            Vista previa
-                                        </a>
+                                <label
+                                    for="template-{{ $template->id }}"
+                                    class="relative border rounded-lg cursor-pointer flex flex-col h-full
+                                        border-gray-300 peer-checked:border-purple-600
+                                        peer-checked:ring-2 peer-checked:ring-purple-500 focus:outline-none"
+                                >
+                                    {{-- Botón de vista previa (abre siempre en nueva pestaña) --}}
+                                    <a href="{{ route('invitation.previewTemplate', ['slug' => $event->custom_url_slug, 'template' => $template->id]) }}"
+                                    target="_blank"
+                                    class="absolute top-2 right-2 text-[11px] px-2 py-1 rounded-full bg-white/80 text-purple-600 font-semibold shadow hover:bg-purple-50">
+                                        Vista previa
+                                    </a>
 
-                                        <div class="h-32 bg-gray-100 rounded-t-lg flex items-center justify-center">
-                                            <span class="text-gray-400 text-xs">Vista Previa</span>
-                                        </div>
-                                        <div class="p-2 text-center flex-grow flex flex-col justify-center">
-                                            <span class="text-sm font-medium text-gray-900">{{ $template->name }}</span>
-                                            @if($template->is_premium)
-                                                <span class="block text-xs text-purple-600 font-bold">PREMIUM</span>
-                                            @else
-                                                <span class="block text-xs text-gray-500">GRATIS</span>
-                                            @endif
-                                        </div>
-                                    </label>
-                                </div>
-                            @empty
-                                <p class="text-sm text-red-600 col-span-full">
-                                    No se encontraron plantillas. (Verifica la base de datos).
-                                </p>
-                            @endforelse
-                        </div>
-
-                        @error('template_id')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
+                                    <div class="h-32 bg-gray-100 rounded-t-lg flex items-center justify-center">
+                                        <span class="text-gray-400 text-xs">Vista Previa</span>
+                                    </div>
+                                    <div class="p-2 text-center flex-grow flex flex-col justify-center">
+                                        <span class="text-sm font-medium text-gray-900">{{ $template->name }}</span>
+                                        @if($template->is_premium)
+                                            <span class="block text-xs text-purple-600 font-bold">PREMIUM</span>
+                                        @else
+                                            <span class="block text-xs text-gray-500">GRATIS</span>
+                                        @endif
+                                    </div>
+                                </label>
+                            </div>
+                        @empty
+                            <p class="text-sm text-red-600 col-span-full">
+                                No se encontraron plantillas. (Verifica la base de datos).
+                            </p>
+                        @endforelse
                     </div>
+
+                    @error('template_id')
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
 
 
                 <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -360,14 +358,18 @@
             </fieldset>
 
             <div class="pt-6 text-right border-t border-gray-200">
-                <a href="{{ route('home') }}" class="mr-3 rounded-md border border-gray-300 bg-white py-2 px-6 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                <a href="{{ route('home') }}" 
+                class="mr-3 rounded-md border border-gray-300 bg-white py-2 px-6 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
                     Cancelar
                 </a>
-                <a href="{{ route('invitation.show', $event->custom_url_slug) }}" 
-                   target="_blank" 
-                   class="mr-3 rounded-md border border-purple-300 bg-purple-50 py-2 px-6 text-sm font-medium text-purple-700 shadow-sm hover:bg-purple-100">
+
+                <a href="{{ route('invitation.previewTemplate', ['slug' => $event->custom_url_slug, 'template' => $event->template_id]) }}" 
+                id="btnPreview"
+                target="_blank" 
+                class="mr-3 rounded-md border border-purple-300 bg-purple-50 py-2 px-6 text-sm font-medium text-purple-700 shadow-sm hover:bg-purple-100">
                     Previsualizar
                 </a>
+
                 <button type="submit"
                         class="rounded-full gradient-primary px-6 py-2 text-sm font-semibold text-white shadow-sm hover:shadow-lg transition transform hover:scale-105">
                     Guardar Cambios Principales
@@ -464,3 +466,30 @@
         </fieldset>
     </div>
 @endsection
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const radios = document.querySelectorAll('input[name="template_id"]');
+    const btnPreview = document.getElementById('btnPreview');
+
+    // Base: /e/{slug}/preview
+    const previewBaseUrl = @json(url('/e/' . $event->custom_url_slug . '/preview'));
+
+    if (!btnPreview || !radios.length) return;
+
+    function updatePreviewHref() {
+        const checked = document.querySelector('input[name="template_id"]:checked');
+        if (checked) {
+            btnPreview.href = previewBaseUrl + '/' + checked.value;
+        }
+    }
+
+    // Actualizamos cuando cambie la plantilla
+    radios.forEach(radio => {
+        radio.addEventListener('change', updatePreviewHref);
+    });
+
+    // Y una vez al cargar la página, por si ya hay una plantilla seleccionada
+    updatePreviewHref();
+});
+</script>

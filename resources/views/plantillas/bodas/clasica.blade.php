@@ -48,10 +48,16 @@
     // --- Procesamos las frases (de TEXT a array) ---
     $frases_novia = $event->bride_story ? explode("\n", trim($event->bride_story)) : ['Contigo encontré mi lugar en el mundo.'];
     $frases_novio = $event->groom_story ? explode("\n", trim($event->groom_story)) : ['Eres mi presente y mi futuro.'];
-@endphp
 
-@php
+    // --- Helpers generales de plantilla ---
     $isPreview = $isPreview ?? false;
+
+    $totalPases = 1 + (int) ($guest->max_companions ?? 0);
+
+    $hasResponded = in_array($guest->status, ['confirmed', 'declined'])
+        || $guest->confirmed_companions > 0
+        || !empty($guest->dietary_restrictions)
+        || !empty($guest->message_to_couple);
 @endphp
 
 <!DOCTYPE html>
@@ -69,7 +75,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --gold: {{ $event->primary_color }};
-  --dark: {{ $event->secondary_color }};
+  --dark: {{ $event->secondary_color ?? '#222222' }};
   --black: #1a1a1a;
   --cream: #f8f6f0;
   --white: #ffffff;
@@ -107,7 +113,6 @@ a:hover{color:var(--gold-light)}
   z-index:9998;
   width:60px;
   height:60px;
-  border-radius:0;
   background:var(--gold);
   border:2px solid var(--black);
   box-shadow:0 4px 20px rgba(212,175,55,0.4);
@@ -355,18 +360,7 @@ a:hover{color:var(--gold-light)}
   box-shadow:0 20px 60px rgba(0,0,0,0.2);
 }
 
-/* Texto */
-.invitation-text{
-  font-size:1.4rem;
-  line-height:2;
-  color:var(--black);
-  font-family:'Crimson Text',serif;
-  text-align:justify;
-}
-.invitation-img{
-  border:5px solid var(--gold);
-  box-shadow:0 20px 60px rgba(0,0,0,0.3);
-}
+/* Texto invitación */
 .pases-info{
   margin-top:30px;
   font-size:1.3rem;
@@ -504,20 +498,6 @@ a:hover{color:var(--gold-light)}
 
 /* Vestimenta */
 .dress-card{text-align:center}
-.dress-image-container{
-  width:100%;
-  max-width:400px;
-  height:500px;
-  border:5px solid var(--gold);
-  overflow:hidden;
-  margin:0 auto 30px;
-  box-shadow:0 20px 60px rgba(0,0,0,0.3);
-}
-.dress-image-container img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
 .dress-card h3{
   color:var(--black);
   margin-bottom:20px;
@@ -530,6 +510,12 @@ a:hover{color:var(--gold-light)}
   color:var(--dark);
   max-width:450px;
   margin:0 auto;
+}
+.dress-note{
+  margin-top:20px;
+  text-align:center;
+  font-size:1rem;
+  font-style:italic;
 }
 
 /* Timeline */
@@ -664,8 +650,6 @@ footer p{
 </head>
 <body class="modal-open">
 
-<body class="modal-open">
-
 <!-- Control de música -->
 <div id="musicControl" class="music-control" title="Reproducir/Pausar música">
   <svg viewBox="0 0 24 24" id="musicIcon">
@@ -674,16 +658,11 @@ footer p{
 </div>
 <div id="youtube-player"></div>
 
+{{-- MODAL INICIAL --}}
 <div id="modalInicial" class="modal active" role="dialog" aria-labelledby="modalTitle" aria-modal="true">
   <div class="modal-content">
-    @php
-        $hasResponded = in_array($guest->status, ['confirmed', 'declined'])
-            || $guest->confirmed_companions > 0
-            || !empty($guest->dietary_restrictions)
-            || !empty($guest->message_to_couple);
-    @endphp
-
-    <p class="mb-8" style="font-size:1.3rem;">
+    <h2 id="modalTitle">Boda de {{ $event->bride_name }} & {{ $event->groom_name }}</h2>
+    <p style="font-size:1.3rem;">
       @if ($guest->status === 'confirmed')
           Querid@ <strong>{{ $guest->full_name }}</strong>, ¡ya recibimos tu confirmación! 🥳  
           Si necesitas cambiar algún detalle, puedes actualizar tu respuesta aquí mismo.
@@ -695,16 +674,13 @@ footer p{
           en este día tan especial 💌
       @endif
     </p>
-    <button type="button" class="btn" id ="btnEntrar">
-              <span>
-                  {{ $hasResponded ? 'Actualizar respuesta' : 'Enviar respuesta' }}
-              </span>
+    <button type="button" class="btn" id="btnEntrar">
+        <span>{{ $hasResponded ? 'Actualizar respuesta' : 'Ver invitación' }}</span>
     </button>
   </div>
 </div>
 
 <section class="hero" id="inicio">
-  <!-- ... (Decoraciones) ... -->
   <div class="hero-content">
     <h1>{{ $event->bride_name }} & {{ $event->groom_name }}</h1>
     <p>Nos casamos y queremos que seas parte de este momento inolvidable</p>
@@ -726,14 +702,9 @@ footer p{
 
 <section class="section fade-in">
   <div class="container">
-    <h2 class="section-title">Nuestra Invitación</h2>
+    <h2 class="section-title">Nuestra invitación</h2>
     <div class="grid-2">
       <div>
-        <!-- Mensaje de Bienvenida Dinámico -->
-        @php
-            $totalPases = 1 + (int) ($guest->max_companions ?? 0);
-        @endphp
-
         @if ($isPreview)
             <p class="pases-info">
                 Ejemplo: pase para {{ $totalPases }} persona{{ $totalPases > 1 ? 's' : '' }}
@@ -745,7 +716,12 @@ footer p{
         @endif
       </div>
       <div>
-        <img src="https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=800" alt="Fotografía de {{ $event->bride_name }} y {{ $event->groom_name }}" class="invitation-img" loading="lazy" width="600" height="400">
+        <img src="https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=800"
+             alt="Fotografía de {{ $event->bride_name }} y {{ $event->groom_name }}"
+             class="invitation-img"
+             loading="lazy"
+             width="600"
+             height="400">
       </div>
     </div>
   </div>
@@ -758,7 +734,6 @@ footer p{
       <div class="card parent-card">
         <h3>Padres del novio</h3>
         <ul>
-          <!-- Bucle de los padres del novio (desde el campo de texto) -->
           @forelse($padres_novio as $padre)
             @if(!empty($padre)) <li>{{ $padre }}</li> @endif
           @empty
@@ -769,7 +744,6 @@ footer p{
       <div class="card parent-card">
         <h3>Padres de la novia</h3>
         <ul>
-          <!-- Bucle de los padres de la novia (desde el campo de texto) -->
           @forelse($padres_novia as $padre)
             @if(!empty($padre)) <li>{{ $padre }}</li> @endif
           @empty
@@ -786,16 +760,18 @@ footer p{
     <h2 class="section-title">Nuestra historia</h2>
     <div class="carousel" role="region" aria-label="Carrusel de fotos de la pareja">
       <div class="carousel-inner" id="carouselInner">
-        <!-- Bucle de la Galería de Fotos -->
         @forelse($event->eventPhotos as $photo)
-        <div class="carousel-item">
-          <img src="{{ asset('public/uploads/' . $photo->photo_url) }}" alt="Foto de la galería" loading="lazy" width="800" height="550">
-        </div>
+          <div class="carousel-item">
+            <img src="{{ asset('storage/' . $photo->photo_url) }}" alt="Foto de la galería" loading="lazy" width="800" height="550">
+          </div>
         @empty
-        <!-- Si no hay fotos en la galería, muestra la de portada -->
-        <div class="carousel-item">
-          <img src="{{ $event->cover_photo_url ? asset('storage/' . $event->cover_photo_url) : 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800' }}" alt="Foto de portada" loading="lazy" width="800" height="550">
-        </div>
+          <div class="carousel-item">
+            <img src="{{ $event->cover_photo_url ? asset('storage/' . $event->cover_photo_url) : 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800' }}"
+                 alt="Foto de portada"
+                 loading="lazy"
+                 width="800"
+                 height="550">
+          </div>
         @endforelse
       </div>
       <button type="button" class="carousel-btn prev" aria-label="Foto anterior" id="btnPrev">‹</button>
@@ -810,15 +786,14 @@ footer p{
 
 <section class="section save-date-section fade-in">
   <div class="container">
-    <svg class="calendar-icon" viewBox="0 0 80 80" aria-hidden="true">
-      <!-- (SVG del calendario) -->
-      <text x="40" y="52" text-anchor="middle" font-size="24" font-weight="bold" fill="#7D9B7B" font-family="serif">{{ $dia_numero }}</text>
-    </svg>
     <h2 class="section-title">Save the Date</h2>
     <p>
-      {{ $fecha_completa }} a las {{ $hora_evento_formato }} horas
+      {{ $fecha_completa }}
+      @if($hora_evento_formato)
+        a las {{ $hora_evento_formato }} horas
+      @endif
     </p>
-    <button type="button" class="btn btn-secondary" id="btnCalendario"><span>Guardar en mi calendario</span></button>
+    <button type="button" class="btn" id="btnCalendario"><span>Guardar en mi calendario</span></button>
   </div>
 </section>
 
@@ -829,14 +804,23 @@ footer p{
       <div class="venue-info">
         <h3>{{ $event->reception_venue_name }}</h3>
         <p>{{ $event->reception_venue_address }}</p>
-        <p style="opacity:0.8;font-style:italic;font-family:'Cormorant Garamond',serif;font-size:1.2rem">
-          {{ $event->additional_info }} <!-- Info Adicional -->
-        </p>
-        <img src="https://images.unsplash.com/photo-1519167758481-83f29da8a1c4?w=800" alt="{{ $event->reception_venue_name }}" class="venue-img" loading="lazy" width="600" height="400">
+        @if($event->additional_info)
+          <p style="opacity:0.8;font-style:italic;font-family:'Crimson Text',serif;font-size:1.2rem">
+            {{ $event->additional_info }}
+          </p>
+        @endif
+        <img src="https://images.unsplash.com/photo-1519167758481-83f29da8a1c4?w=800"
+             alt="{{ $event->reception_venue_name }}"
+             class="venue-img"
+             loading="lazy"
+             width="600"
+             height="400">
       </div>
       <div class="map-container">
-        <!-- Link de Mapas Dinámico -->
-        <iframe src="{{ $event->reception_maps_link }}" title="Mapa de ubicación de {{ $event->reception_venue_name }}" loading="lazy" allowfullscreen></iframe>
+        <iframe src="{{ $event->reception_maps_link }}"
+                title="Mapa de ubicación de {{ $event->reception_venue_name }}"
+                loading="lazy"
+                allowfullscreen></iframe>
       </div>
     </div>
   </div>
@@ -851,7 +835,7 @@ footer p{
         <p>(Aquí irá una descripción más detallada del código de vestimenta que el usuario puede añadir)</p>
       </div>
       <div class="card dress-card">
-        <p>(Aquí podría ir otra columna, ej. Hombres)</p>
+        <p>(Aquí podría ir otra columna, ej. Hombres / Mujeres, tips, etc.)</p>
       </div>
     </div>
     <p class="dress-note">
@@ -860,28 +844,19 @@ footer p{
   </div>
 </section>
 
-<!-- (Mesa de Regalos - Aún necesitamos construir esta lógica) -->
-<!-- ... -->
-
 <section class="section timeline-section fade-in">
   <div class="container">
     <h2 class="section-title">Itinerario del evento</h2>
     <div class="timeline">
-      <!-- Bucle del Itinerario -->
       @forelse($event->itineraryItems->sortBy('time') as $item)
-      <div class="timeline-item">
-        <h3>
-          <svg class="timeline-icon" viewBox="0 0 60 60" aria-hidden="true">
-            <!-- (SVG Icon) -->
-          </svg>
-          {{ date('H:i', strtotime($item->time)) }} – {{ $item->activity }}
-        </h3>
-      </div>
+        <div class="timeline-item">
+          <h3>{{ date('H:i', strtotime($item->time)) }} – {{ $item->activity }}</h3>
+        </div>
       @empty
-      <div class="timeline-item">
-        <h3>Itinerario pendiente</h3>
-        <p>Los novios están finalizando los detalles del gran día.</p>
-      </div>
+        <div class="timeline-item">
+          <h3>Itinerario pendiente</h3>
+          <p>Los novios están finalizando los detalles del gran día.</p>
+        </div>
       @endforelse
     </div>
   </div>
@@ -891,35 +866,26 @@ footer p{
   <div class="container">
     <h2 class="section-title">Confirma tu asistencia</h2>
 
-    @php
-        $hasResponded = in_array($guest->status, ['confirmed', 'declined'])
-            || $guest->confirmed_companions > 0
-            || !empty($guest->dietary_restrictions)
-            || !empty($guest->message_to_couple);
-    @endphp
+    <p style="font-size:1.3rem;">
+      @if ($guest->status === 'confirmed')
+          Querid@ <strong>{{ $guest->full_name }}</strong>, ¡ya recibimos tu confirmación! 🥳  
+          Si necesitas cambiar algún detalle, puedes actualizar tu respuesta aquí mismo.
+      @elseif ($guest->status === 'declined')
+          Querid@ <strong>{{ $guest->full_name }}</strong>, sentimos que no podrás asistir 💚  
+          Si cambias de opinión, puedes actualizar tu respuesta desde este mismo formulario.
+      @else
+          Querid@ <strong>{{ $guest->full_name }}</strong>, nos encantará saber si podrás acompañarnos
+          en este día tan especial 💌
+      @endif
+    </p>
 
-    <p class="mb-8" style="font-size:1.3rem;">
-    @if ($guest->status === 'confirmed')
-        Querid@ <strong>{{ $guest->full_name }}</strong>, ¡ya recibimos tu confirmación! 🥳  
-        Si necesitas cambiar algún detalle, puedes actualizar tu respuesta aquí mismo.
-    @elseif ($guest->status === 'declined')
-        Querid@ <strong>{{ $guest->full_name }}</strong>, sentimos que no podrás asistir 💚  
-        Si cambias de opinión, puedes actualizar tu respuesta desde este mismo formulario.
-    @else
-        Querid@ <strong>{{ $guest->full_name }}</strong>, nos encantará saber si podrás acompañarnos
-        en este día tan especial 💌
-    @endif
-  </p>
-
-
-    {{-- Mensajes de estado (solo tienen sentido en modo real) --}}
     @if (!$isPreview)
         @if (session('rsvp_status'))
             <div class="success-message">
                 <h3>¡Gracias por tu respuesta! 💖</h3>
                 <p>{{ session('rsvp_status') }}</p>
             </div>
-        @elseif ($alreadyConfirmed)
+        @elseif (!empty($alreadyConfirmed))
             <div class="success-message">
                 <h3>Ya habías confirmado anteriormente</h3>
                 <p>Puedes actualizar tu respuesta si lo necesitas y volver a enviar el formulario.</p>
@@ -929,195 +895,142 @@ footer p{
 
     <div class="grid-2" style="margin-top:40px;align-items:flex-start;">
 
-      {{-- ===========================
-           COLUMNA IZQUIERDA
-         =========================== --}}
+      {{-- Columna izquierda: formulario --}}
       <div>
         @if ($isPreview)
-          {{-- VISTA PREVIA: formulario “de mentiras” --}}
           <div class="card" style="text-align:left;">
             <p class="text-sm text-slate-600 mb-4">
               Estás viendo una <strong>vista previa</strong>. Así se verá el formulario para tus invitados,
               pero aquí los campos están deshabilitados.
             </p>
 
-            {{-- Asistencia (demo) --}}
             <div class="form-group">
-              <label class="block text-sm font-medium text-slate-800 mb-1">
-                ¿Podrás asistir?
-              </label>
-
-              <div class="space-y-2 text-sm">
-                <label class="inline-flex items-center gap-2 opacity-60">
-                  <input type="radio" disabled checked>
-                  <span>Sí, con gusto asistiré 🎉</span>
+              <label>¿Podrás asistir?</label>
+              <div>
+                <label class="opacity-60">
+                  <input type="radio" disabled checked> Sí, con gusto asistiré 🎉
                 </label><br>
-
-                <label class="inline-flex items-center gap-2 opacity-60">
-                  <input type="radio" disabled>
-                  <span>No podré asistir 😢</span>
+                <label class="opacity-60">
+                  <input type="radio" disabled> No podré asistir 😢
                 </label>
               </div>
             </div>
 
-            {{-- Acompañantes (demo) --}}
             @if ($guest->max_companions > 0)
               <div class="form-group">
-                <label class="block text-sm font-medium text-slate-800 mb-1">
-                  ¿Cuántas personas te acompañan?
-                </label>
-                <p class="text-xs text-slate-500 mb-2">
+                <label>¿Cuántas personas te acompañan?</label>
+                <p style="font-size:0.8rem;opacity:0.7;">
                   Puedes traer hasta {{ $guest->max_companions }} acompañante(s).
                 </p>
-
-                <input type="number"
-                       disabled
-                       value="1"
-                       class="w-24 border-slate-300 rounded-md text-sm opacity-60">
+                <input type="number" disabled value="1" style="width:80px;opacity:0.6;">
               </div>
             @endif
 
-            {{-- Restricciones (demo) --}}
             <div class="form-group">
-              <label class="block text-sm font-medium text-slate-800 mb-1">
-                ¿Tienes alguna restricción alimentaria?
-              </label>
-              <textarea rows="2"
-                        disabled
-                        class="w-full border-slate-300 rounded-md text-sm opacity-60"
-                        placeholder="Ejemplo: vegetariano, vegano, sin gluten, alergia a mariscos, etc."></textarea>
+              <label>¿Tienes alguna restricción alimentaria?</label>
+              <textarea rows="2" disabled
+                        placeholder="Ejemplo: vegetariano, vegano, sin gluten, alergia a mariscos, etc."
+                        style="opacity:0.6;"></textarea>
             </div>
 
-            {{-- Mensaje (demo) --}}
             <div class="form-group">
-              <label class="block text-sm font-medium text-slate-800 mb-1">
-                Mensaje para {{ $event->bride_name }} & {{ $event->groom_name }}
-              </label>
-              <textarea rows="3"
-                        disabled
-                        class="w-full border-slate-300 rounded-md text-sm opacity-60"
-                        placeholder="Déjales un mensaje bonito a los novios 💌"></textarea>
+              <label>Mensaje para {{ $event->bride_name }} & {{ $event->groom_name }}</label>
+              <textarea rows="3" disabled
+                        placeholder="Déjales un mensaje bonito a los novios 💌"
+                        style="opacity:0.6;"></textarea>
             </div>
 
             <div style="text-align:center;margin-top:20px;">
-              <button type="submit" class="btn">
-              <span>
-                  {{ $hasResponded ? 'Actualizar respuesta' : 'Enviar respuesta' }}
-              </span>
-            </button>
+              <button type="button" class="btn">
+                <span>{{ $hasResponded ? 'Actualizar respuesta' : 'Enviar respuesta' }}</span>
+              </button>
             </div>
           </div>
         @else
-          {{-- MODO REAL: formulario funcional --}}
           <form method="POST"
                 action="{{ route('rsvp.submit', ['slug' => $event->custom_url_slug, 'token' => $guest->invitation_token]) }}"
                 class="card"
                 style="text-align:left;">
             @csrf
 
-            {{-- Asistencia --}}
             <div class="form-group">
-              <label class="block text-sm font-medium text-slate-800 mb-1">
-                ¿Podrás asistir?
-              </label>
-
-              <div class="space-y-2 text-sm">
-                <label class="inline-flex items-center gap-2">
+              <label>¿Podrás asistir?</label>
+              <div>
+                <label>
                   <input type="radio"
                          name="status"
                          value="confirmed"
-                         @checked(old('status', $guest->status) === 'confirmed')
-                         class="rounded border-slate-300">
-                  <span>Sí, con gusto asistiré 🎉</span>
+                         @checked(old('status', $guest->status) === 'confirmed')>
+                  Sí, con gusto asistiré 🎉
                 </label><br>
-
-                <label class="inline-flex items-center gap-2">
+                <label>
                   <input type="radio"
                          name="status"
                          value="declined"
-                         @checked(old('status', $guest->status) === 'declined')
-                         class="rounded border-slate-300">
-                  <span>No podré asistir 😢</span>
+                         @checked(old('status', $guest->status) === 'declined')>
+                  No podré asistir 😢
                 </label>
               </div>
-
               @error('status')
-                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                <p style="margin-top:4px;font-size:0.8rem;color:#b91c1c;">{{ $message }}</p>
               @enderror
             </div>
 
-            {{-- Acompañantes --}}
             @if ($guest->max_companions > 0)
               <div class="form-group">
-                <label class="block text-sm font-medium text-slate-800 mb-1">
-                  ¿Cuántas personas te acompañan?
-                </label>
-                <p class="text-xs text-slate-500 mb-2">
+                <label>¿Cuántas personas te acompañan?</label>
+                <p style="font-size:0.8rem;opacity:0.7;">
                   Puedes traer hasta {{ $guest->max_companions }} acompañante(s).
                 </p>
-
                 <input type="number"
                        name="confirmed_companions"
                        min="0"
                        max="{{ $guest->max_companions }}"
                        value="{{ old('confirmed_companions', $guest->confirmed_companions) }}"
-                       class="w-24 border-slate-300 rounded-md text-sm">
-
+                       style="width:80px;">
                 @error('confirmed_companions')
-                  <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                  <p style="margin-top:4px;font-size:0.8rem;color:#b91c1c;">{{ $message }}</p>
                 @enderror
               </div>
             @endif
 
-            {{-- Restricciones alimentarias --}}
             <div class="form-group">
-              <label class="block text-sm font-medium text-slate-800 mb-1">
-                ¿Tienes alguna restricción alimentaria?
-              </label>
+              <label>¿Tienes alguna restricción alimentaria?</label>
               <textarea name="dietary_restrictions"
                         rows="2"
-                        class="w-full border-slate-300 rounded-md text-sm"
                         placeholder="Ejemplo: vegetariano, vegano, sin gluten, alergia a mariscos, etc.">{{ old('dietary_restrictions', $guest->dietary_restrictions) }}</textarea>
-
               @error('dietary_restrictions')
-                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                <p style="margin-top:4px;font-size:0.8rem;color:#b91c1c;">{{ $message }}</p>
               @enderror
             </div>
 
-            {{-- Mensaje para los novios --}}
             <div class="form-group">
-              <label class="block text-sm font-medium text-slate-800 mb-1">
-                Mensaje para {{ $event->bride_name }} & {{ $event->groom_name }}
-              </label>
+              <label>Mensaje para {{ $event->bride_name }} & {{ $event->groom_name }}</label>
               <textarea name="message_to_couple"
                         rows="3"
-                        class="w-full border-slate-300 rounded-md text-sm"
                         placeholder="Déjales un mensaje bonito a los novios 💌">{{ old('message_to_couple', $guest->message_to_couple) }}</textarea>
-
               @error('message_to_couple')
-                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                <p style="margin-top:4px;font-size:0.8rem;color:#b91c1c;">{{ $message }}</p>
               @enderror
             </div>
 
             <div style="text-align:center;margin-top:20px;">
               <button type="submit" class="btn">
-                <span>Enviar respuesta</span>
+                <span>{{ $hasResponded ? 'Actualizar respuesta' : 'Enviar respuesta' }}</span>
               </button>
             </div>
           </form>
         @endif
       </div>
 
-      {{-- ===========================
-           COLUMNA DERECHA (resumen)
-         =========================== --}}
+      {{-- Columna derecha: resumen de invitación --}}
       <div class="card" style="text-align:left;">
         <h3 style="margin-bottom:15px;">
           {{ $isPreview ? 'Ejemplo de cómo verá su invitación' : 'Detalles de tu invitación' }}
         </h3>
         <p><strong>Invitad@:</strong> {{ $guest->full_name }}</p>
         <p><strong>Evento:</strong> Boda de {{ $event->bride_name }} & {{ $event->groom_name }}</p>
-        <p><strong>Fecha:</strong> {{ $fecha_completa }} a las {{ $hora_evento_formato }} hrs</p>
+        <p><strong>Fecha:</strong> {{ $fecha_completa }}@if($hora_evento_formato) a las {{ $hora_evento_formato }} hrs @endif</p>
         <p><strong>Lugar:</strong> {{ $event->reception_venue_name }}</p>
         <p><strong>Dirección:</strong> {{ $event->reception_venue_address }}</p>
         <p style="margin-top:15px;">
@@ -1144,24 +1057,39 @@ footer p{
 
 <footer>
   <p>{{ $event->bride_name }} & {{ $event->groom_name }} • {{ $fecha_evento->format('Y') }}</p>
-  <p style="margin-top:15px;font-size:1.15rem;opacity:0.95">Con amor y gratitud para nuestros seres queridos</p>
+  <p style="margin-top:15px;font-size:1.15rem;opacity:0.95">
+    Con amor y gratitud para nuestros seres queridos
+  </p>
 </footer>
 
 <script>
-const fechaEvento = {{ $fechaEventoJs }}; // milisegundos desde PHP/Carbon
+const fechaEvento = {{ $fechaEventoJs }};
 const novia       = @json($event->bride_name);
 const novio       = @json($event->groom_name);
 const lugarNombre = @json($event->reception_venue_name);
-const youtubeVideoId = @json($event->music_url ?? '');
+const youtubeUrl  = @json($event->music_url ?? '');
 const frasesNovia = @json($frases_novia);
 const frasesNovio = @json($frases_novio);
-const totalFotos  = {{ $event->eventPhotos->count() > 0 ? $event->eventPhotos->count() : ($event->cover_photo_url ? 1 : 0) }};
+const totalFotos  = {{ $event->eventPhotos->count() > 0 ? $event->eventPhotos->count() : 1 }};
+
+// === Obtener ID de YouTube (acepta URL o ID) ===
+let youtubeVideoId = '';
+if (youtubeUrl) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)?([^#&?]*).*/;
+    const match = youtubeUrl.match(regExp);
+    if (match && match[2].length === 11) {
+        youtubeVideoId = match[2];
+    } else {
+        youtubeVideoId = youtubeUrl;
+    }
+}
 
 // ===== MÚSICA DE FONDO CON YOUTUBE =====
 let player;
 let isMusicPlaying = false;
 
 function onYouTubeIframeAPIReady() {
+  if (!youtubeVideoId) return;
   player = new YT.Player('youtube-player', {
     videoId: youtubeVideoId,
     playerVars: {
@@ -1184,6 +1112,7 @@ function onPlayerReady(event) {
   const musicIcon = document.getElementById('musicIcon');
   
   musicControl.addEventListener('click', () => {
+    if (!player) return;
     if (isMusicPlaying) {
       player.pauseVideo();
       musicControl.classList.add('muted');
@@ -1200,10 +1129,12 @@ function onPlayerReady(event) {
 }
 
 // Cargar API de YouTube
-const tag = document.createElement('script');
-tag.src = 'https://www.youtube.com/iframe_api';
-const firstScriptTag = document.getElementsByTagName('script')[0];
-firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+(function(){
+  const tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  const firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+})();
 
 // Animación scroll
 const observerOptions = {threshold: 0.1, rootMargin: '0px 0px -100px 0px'};
@@ -1260,7 +1191,7 @@ function actualizarContador(){
 actualizarContador();
 setInterval(actualizarContador, 1000);
 
-// ===== CARRUSEL =====
+// ===== CARRUSEL + FRASES =====
 let currentSlide = 0;
 const carouselInner = document.getElementById('carouselInner');
 const btnPrev = document.getElementById('btnPrev');
@@ -1269,34 +1200,37 @@ const fraseTexto = document.getElementById('fraseTexto');
 const fraseAutor = document.getElementById('fraseAutor');
 
 function actualizarCarrusel(){
+  if (!carouselInner) return;
   carouselInner.style.transform = `translateX(-${currentSlide * 100}%)`;
   const esPar = currentSlide % 2 === 0;
   const frases = esPar ? frasesNovia : frasesNovio;
   const autor = esPar ? novia : novio;
+  if (frases.length === 0) return;
   const indice = Math.floor(currentSlide / 2) % frases.length;
   fraseTexto.textContent = frases[indice];
   fraseAutor.textContent = `— ${autor}`;
 }
 
-btnPrev.addEventListener('click', () => {
-  currentSlide = currentSlide === 0 ? totalFotos - 1 : currentSlide - 1;
-  actualizarCarrusel();
-});
+if (btnPrev && btnNext && totalFotos > 0) {
+  btnPrev.addEventListener('click', () => {
+    currentSlide = currentSlide === 0 ? totalFotos - 1 : currentSlide - 1;
+    actualizarCarrusel();
+  });
 
-btnNext.addEventListener('click', () => {
-  currentSlide = (currentSlide + 1) % totalFotos;
-  actualizarCarrusel();
-});
+  btnNext.addEventListener('click', () => {
+    currentSlide = (currentSlide + 1) % totalFotos;
+    actualizarCarrusel();
+  });
 
-actualizarCarrusel();
-setInterval(() => {
-  currentSlide = (currentSlide + 1) % totalFotos;
   actualizarCarrusel();
-}, 5000);
+  setInterval(() => {
+    currentSlide = (currentSlide + 1) % totalFotos;
+    actualizarCarrusel();
+  }, 5000);
+}
 
 // ===== BOTÓN AÑADIR AL CALENDARIO (.ICS) =====
 document.getElementById('btnCalendario').addEventListener('click', () => {
-  // Helper para formatear fecha a YYYYMMDDTHHmmSSZ (formato UTC para .ics)
   function formatICSDate(date) {
     const pad = (num) => (num < 10 ? '0' + num : num);
     const year = date.getUTCFullYear();
@@ -1334,63 +1268,6 @@ document.getElementById('btnCalendario').addEventListener('click', () => {
   link.href = URL.createObjectURL(blob);
   link.download = `boda-${novia.toLowerCase()}-${novio.toLowerCase()}.ics`;
   link.click();
-});
-
-// ===== RSVP =====
-const modalRsvp = document.getElementById('modalRsvp');
-const btnRsvp = document.getElementById('btnRsvp');
-const btnCerrarRsvp = document.getElementById('btnCerrarRsvp');
-const formRsvp = document.getElementById('formRsvp');
-const successMsg = document.getElementById('successMsg');
-
-btnRsvp.addEventListener('click', () => {
-  modalRsvp.classList.add('active');
-  document.body.classList.add('modal-open');
-  setTimeout(() => document.getElementById('nombre').focus(), 100);
-});
-
-btnCerrarRsvp.addEventListener('click', () => {
-  modalRsvp.classList.remove('active');
-  document.body.classList.remove('modal-open');
-  formRsvp.reset();
-  successMsg.style.display = 'none';
-});
-
-document.addEventListener('keydown', (e) => {
-  if(e.key === 'Escape' && modalRsvp.classList.contains('active')){
-    btnCerrarRsvp.click();
-  }
-});
-
-formRsvp.addEventListener('submit', (e) => {
-  e.preventDefault();
-  if(formRsvp.website.value) return;
-  
-  const nombre = document.getElementById('nombre').value.trim();
-  const contacto = document.getElementById('contacto').value.trim();
-  const asistentes = document.getElementById('asistentes').value;
-  const comentario = document.getElementById('comentario').value.trim();
-  
-  if(!nombre || !contacto){
-    alert('Por favor completa todos los campos requeridos');
-    return;
-  }
-  
-  successMsg.innerHTML = `
-    <h3>¡Confirmación recibida! 🎉</h3>
-    <p><strong>Nombre:</strong> ${nombre}</p>
-    <p><strong>Contacto:</strong> ${contacto}</p>
-    <p><strong>Número de asistentes:</strong> ${asistentes}</p>
-    ${comentario ? `<p><strong>Tu mensaje:</strong> ${comentario}</p>` : ''}
-    <p style="margin-top:25px;font-style:italic;font-size:1.15rem">¡Muchas gracias por confirmar! Te esperamos con mucha ilusión en nuestra boda.</p>
-  `;
-  successMsg.style.display = 'block';
-  formRsvp.style.display = 'none';
-  
-  setTimeout(() => {
-    btnCerrarRsvp.click();
-    formRsvp.style.display = 'block';
-  }, 6000);
 });
 </script>
 </body>
